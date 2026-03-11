@@ -1,0 +1,12 @@
+[
+  {
+    "id": "book_001",
+    "title": "200 recetas KETO",
+    "description": "Aprende a preparar deliciosas recetas KETO para mantener una dieta baja en carbohidratos y alta en grasas saludables. Incluye desayunos, almuerzos, cenas y snacks.",
+    "pages": 200,
+    "price": 29,
+    "currency": "S/7",
+    "preview": "Los primeros 3 capítulos cubren: desayunos energéticos, almuerzos rápidos y cenas ligeras.",
+    "download_link": "https://drive.google.com/file/d/13TFwHbyAbffmicwMNH78-mluRV7q3doa/view?usp=sharing"
+  }
+]

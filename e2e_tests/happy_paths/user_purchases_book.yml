@@ -1,0 +1,21 @@
+test_case: user purchases a book via Yape
+steps:
+  - user: Quiero comprar el libro de Excel
+  - utter: utter_ask_buyer_name
+  - user: Juan Pérez
+  - slot_was_set:
+      - buyer_name: "Juan Pérez"
+  - utter: utter_ask_selected_book_id
+  - user: Excel Profesional
+  - slot_was_set:
+      - selected_book_id: "book_002"
+  - action: action_get_book_details
+  - slot_was_set:
+      - book_title: "Excel Profesional"
+      - book_price: "S/. 25"
+  - utter: utter_ask_purchase_confirmation
+  - user: Sí, confirmar
+  - slot_was_set:
+      - purchase_confirmation: true
+  - utter: utter_payment_instructions
+  - utter: utter_ask_payment_screenshot_url

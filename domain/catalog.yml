@@ -1,0 +1,25 @@
+version: "3.1"
+
+actions:
+  - action_show_catalog
+  - action_get_book_details
+
+slots:
+  selected_book_id:
+    type: text
+    mappings:
+      - type: from_llm
+  book_title:
+    type: text
+    mappings:
+      - type: controlled
+  book_price:
+    type: text
+    mappings:
+      - type: controlled
+
+responses:
+  utter_ask_selected_book_id:
+    - text: "¿Qué libro te interesa? Puedes decirme el nombre o el número del catálogo."
+  utter_book_not_found:
+    - text: "No encontré ese libro. Aquí está el catálogo disponible:"

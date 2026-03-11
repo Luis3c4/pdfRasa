@@ -1,0 +1,7 @@
+flows:
+  browse_catalog:
+    description: muestra el catálogo de ebooks disponibles con sus precios
+    name: ver catálogo
+    steps:
+      - action: action_show_catalog
+        next: END

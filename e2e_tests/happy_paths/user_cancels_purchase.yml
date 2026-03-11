@@ -1,0 +1,19 @@
+test_case: user cancels purchase at confirmation
+steps:
+  - user: Quiero comprar el libro de emprendimiento
+  - utter: utter_ask_buyer_name
+  - user: María Quispe
+  - slot_was_set:
+      - buyer_name: "María Quispe"
+  - utter: utter_ask_selected_book_id
+  - user: Emprendimiento Digital
+  - slot_was_set:
+      - selected_book_id: "book_003"
+  - action: action_get_book_details
+  - slot_was_set:
+      - book_title: "Emprendimiento Digital"
+  - utter: utter_ask_purchase_confirmation
+  - user: No, cancelar
+  - slot_was_set:
+      - purchase_confirmation: false
+  - utter: utter_purchase_cancelled

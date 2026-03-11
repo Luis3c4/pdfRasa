@@ -1,0 +1,12 @@
+test_case: user asks about a specific book
+steps:
+  - user: Cuéntame sobre el libro de inglés
+  - utter: utter_ask_selected_book_id
+  - user: Inglés en 30 Días
+  - slot_was_set:
+      - selected_book_id: "book_001"
+  - action: action_get_book_details
+  - slot_was_set:
+      - book_title: "Inglés en 30 Días"
+      - book_price: "S/. 29"
+      - return_value: "success"

@@ -1,0 +1,4 @@
+test_case: user browses the ebook catalog
+steps:
+  - user: Quiero ver los libros disponibles
+  - action: action_show_catalog

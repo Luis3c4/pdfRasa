@@ -1,0 +1,39 @@
+version: "3.1"
+
+actions:
+  - action_create_order
+  - action_release_download
+  - validate_payment_screenshot_url
+
+slots:
+  payment_screenshot_url:
+    type: text
+    mappings:
+      - type: controlled
+  order_id:
+    type: text
+    mappings:
+      - type: controlled
+  purchase_confirmation:
+    type: bool
+    mappings:
+      - type: from_llm
+
+responses:
+  utter_ask_purchase_confirmation:
+    - text: "Quieres comprar *{book_title}* por *{book_price}* ¿Es correcto?"
+      buttons:
+        - payload: "/SetSlots(purchase_confirmation=true)"
+          title: "Sí, confirmar"
+        - payload: "/SetSlots(purchase_confirmation=false)"
+          title: "No, cancelar"
+  utter_payment_instructions:
+    - text: "💳 *Instrucciones de pago*\n\nRealiza tu pago por *Yape* al número:\n📱 *912201963*\n\nMonto: *{book_price}*\n📚 Libro: *{book_title}*\n\nUna vez realizado el pago, envíame la *captura de pantalla* de la transacción por aquí."
+  utter_ask_payment_screenshot_url:
+    - text: "Por favor envía la captura de pantalla de tu pago por Yape. 📸"
+  utter_order_created:
+    - text: "✅ ¡Pago recibido! Tu orden *#{order_id}* fue registrada.\n\nEn un momento recibirás el link de descarga."
+  utter_purchase_cancelled:
+    - text: "✋ Entendido, cancelé la compra. Si cambias de idea, ¡aquí estaré!"
+  utter_purchase_error:
+    - text: "Algo salió mal al procesar tu orden. Por favor intenta nuevamente o escribe *hola* para comenzar."

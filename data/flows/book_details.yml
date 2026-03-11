@@ -1,0 +1,15 @@
+flows:
+  book_details:
+    description: muestra información detallada de un ebook específico, incluyendo descripción, número de páginas y preview del contenido
+    name: ver detalles de un libro
+    steps:
+      - collect: "selected_book_id"
+        description: "el nombre o identificador del libro sobre el que el usuario quiere información"
+      - id: get_details
+        action: action_get_book_details
+        next:
+          - if: "slots.return_value = 'not_found'"
+            then:
+              - action: utter_book_not_found
+                next: END
+          - else: END

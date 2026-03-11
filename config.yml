@@ -1,0 +1,17 @@
+recipe: default.v1
+assistant_id: ferocious-parameter
+language: en
+pipeline:
+- name: CompactLLMCommandGenerator
+  llm:
+    model_group: self_hosted_llm
+  flow_retrieval:
+    embeddings:
+      model_group: openai-embeddings
+policies:
+- name: FlowPolicy
+- name: IntentlessPolicy
+  llm:
+    model_group: self_hosted_llm
+  embeddings:
+    model_group: openai-embeddings

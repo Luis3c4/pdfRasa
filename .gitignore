@@ -1,0 +1,39 @@
+# ─── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# ─── Virtual environment ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ─── Rasa ────────────────────────────────────────────────────────────────────
+# Trained models — regenerate with `rasa train`
+models/
+
+# Internal cache (embeddings index, LLM response cache)
+.rasa/
+
+# ─── Credentials & secrets ───────────────────────────────────────────────────
+# Copy credentials.yml.example → credentials.yml and fill in your values.
+credentials.yml
+.env
+*.env
+
+# ─── Runtime data ────────────────────────────────────────────────────────────
+# Orders are written at runtime — not tracked in git.
+# catalog.json IS tracked (it's your product catalog).
+db/orders.json
+
+# ─── OS / editor ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
