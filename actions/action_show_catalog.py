@@ -27,7 +27,5 @@ class ActionShowCatalog(Action):
                 f"   💰 Precio: {book.currency} {book.price}\n"
                 f"   📄 {book.pages} páginas\n"
             )
-        lines.append("Escríbeme el nombre del libro para más información o para comprarlo. 😊")
-
         dispatcher.utter_message(text="\n".join(lines))
-        return []
+        return [SlotSet("selected_book_id", None)]

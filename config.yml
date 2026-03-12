@@ -1,9 +1,9 @@
 recipe: default.v1
 assistant_id: ferocious-parameter
-language: en
+language: es
 pipeline:
 - name: CompactLLMCommandGenerator
-  llm:
+  llm:  
     model_group: self_hosted_llm
   flow_retrieval:
     embeddings:

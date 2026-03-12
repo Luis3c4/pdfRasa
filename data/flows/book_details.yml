@@ -1,6 +1,6 @@
 flows:
   book_details:
-    description: muestra información detallada de un ebook específico, incluyendo descripción, número de páginas y preview del contenido
+    description: muestra información detallada de un ebook específico como descripción, número de páginas y precio. Se activa cuando el usuario menciona el nombre de un libro o pide información sobre un libro en particular
     name: ver detalles de un libro
     steps:
       - collect: "selected_book_id"

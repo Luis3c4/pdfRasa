@@ -21,15 +21,22 @@ class ValidatePaymentScreenshotUrl(Action):
     ) -> List[Dict[Text, Any]]:
         metadata = tracker.latest_message.get("metadata", {})
 
-        # Twilio WhatsApp connector
-        image_url = metadata.get("MediaUrl0")
+        # Chatwoot Agent Bot connector (primary)
+        attachments = metadata.get("attachments") or []
+        if attachments:
+            image_url = attachments[0].get("data_url") or attachments[0].get("url")
+            if image_url:
+                return [SlotSet("payment_screenshot_url", image_url)]
 
         # Meta Business API (Cloud API)
-        if not image_url:
-            image_data = metadata.get("image", {})
-            image_url = image_data.get("link") or image_data.get("id")
+        image_data = metadata.get("image", {})
+        image_url = image_data.get("link") or image_data.get("id")
 
-        # Generic fallback – some connectors forward a top-level image_url key
+        # Twilio WhatsApp connector
+        if not image_url:
+            image_url = metadata.get("MediaUrl0")
+
+        # Generic fallback
         if not image_url:
             image_url = metadata.get("image_url")
 

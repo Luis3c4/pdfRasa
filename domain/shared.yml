@@ -1,5 +1,13 @@
 version: "3.1"
 
+responses:
+  utter_greet:
+    - text: "¡Hola! 👋 Bienvenido a nuestra tienda de eBooks. Puedo ayudarte a:\n\n📚 Ver el *catálogo* de libros disponibles\n📖 Obtener *información* de un libro específico\n🛒 *Comprar* un eBook\n\n¿En qué te puedo ayudar?"
+  utter_cannot_handle:
+    - text: "Lo siento, no entendí eso. ¿Puedes decirlo de otra manera?\n\nPuedo ayudarte a ver el catálogo, información de un libro o ayudarte a comprar."
+  utter_out_of_scope:
+    - text: "Eso está fuera de lo que puedo hacer. Puedo ayudarte a ver el catálogo de eBooks, obtener detalles de un libro o procesar una compra."
+
 slots:
   return_value:
     type: any

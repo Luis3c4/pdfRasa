@@ -1,0 +1,19 @@
+flows:
+  greeting:
+    description: "el usuario saluda o inicia la conversación. Frases como: hola, buenos días, buenas tardes, buenas noches, hi, hey, qué tal, buen día"
+    name: saludo
+    steps:
+      - action: utter_greet
+        next: END
+
+  pattern_cannot_handle:
+    description: el bot no puede manejar el mensaje del usuario
+    name: no puedo ayudar
+    steps:
+      - action: utter_cannot_handle
+
+  pattern_out_of_scope:
+    description: el usuario pregunta algo fuera del alcance del bot
+    name: fuera de alcance
+    steps:
+      - action: utter_out_of_scope

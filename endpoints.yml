@@ -55,8 +55,7 @@ model_groups:
       - provider: openai
         model: Qwen/Qwen2.5-7B-Instruct
         api_base: http://localhost:8000/v1
-        use_chat_completions_endpoint: false
-        api_key: ${OPENAI_API_KEY}
+        api_key: ${VLLM_API_KEY}
         request_timeout: 120
         max_tokens: 512
   - id: openai-gpt-4o
@@ -70,5 +69,5 @@ model_groups:
       - provider: openai
         model: BAAI/bge-m3
         api_base: http://localhost:8001/v1
-        api_key: ${OPENAI_API_KEY}
+        api_key: ${VLLM_API_KEY}
         encoding_format: float
