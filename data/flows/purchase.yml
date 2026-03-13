@@ -1,6 +1,6 @@
 flows:
   purchase:
-    description: comprar un ebook o pdf, realizar el pago por Yape y recibir el link de descarga
+    description: "comprar un ebook o pdf, realizar el pago por Yape y recibir el link de descarga"
     name: comprar un ebook
     steps:
       - collect: "selected_book_id"
@@ -11,8 +11,14 @@ flows:
           - if: "slots.return_value = 'not_found'"
             then:
               - action: utter_book_not_found
-                next: END
-          - else: confirm_purchase
+                next: show_catalog_on_not_found
+          - else: show_preview
+      - id: show_catalog_on_not_found
+        action: action_show_catalog
+        next: END
+      - id: show_preview
+        action: utter_book_purchase_preview
+        next: confirm_purchase
       - id: confirm_purchase
         collect: "purchase_confirmation"
         ask_before_filling: true
@@ -20,20 +26,25 @@ flows:
           - if: "slots.purchase_confirmation is not true"
             then:
               - action: utter_purchase_cancelled
-                next: END
+                next: reset_slots
           - else: show_payment_instructions
+      - id: reset_slots
+        action: action_reset_purchase_slots
+        next: END
       - id: show_payment_instructions
         action: utter_payment_instructions
-        next: ask_screenshot
-      - id: ask_screenshot
-        action: utter_ask_payment_screenshot_url
+        next: wait_for_screenshot
+      - id: wait_for_screenshot
+        collect: payment_screenshot_url
+        description: "el usuario envía la captura de pantalla de su pago como imagen adjunta"
+        ask_before_filling: true
         next: validate_screenshot
       - id: validate_screenshot
         action: validate_payment_screenshot_url
         next:
           - if: "slots.payment_screenshot_url is not null"
             then: create_order
-          - else: ask_screenshot
+          - else: wait_for_screenshot
       - id: create_order
         action: action_create_order
         next:

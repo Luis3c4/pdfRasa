@@ -35,4 +35,9 @@ class ActionReleaseDownload(Action):
             )
         )
 
-        return [SlotSet("return_value", "success")]
+        return [
+            SlotSet("return_value", "success"),
+            SlotSet("purchase_confirmation", None),
+            SlotSet("payment_screenshot_url", None),
+            SlotSet("selected_book_id", None),
+        ]

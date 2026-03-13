@@ -61,7 +61,8 @@ def write_db(session_id: str, db: str, data: Any) -> None:
 
 
 def get_all_books(session_id: str) -> List[Book]:
-    return [Book(**item) for item in read_db(session_id, CATALOG)]
+    catalog_path = os.path.join(ORIGIN_DB_PATH, CATALOG)
+    return [Book(**item) for item in read_json_file(catalog_path)]
 
 
 def get_book_by_id(session_id: str, book_id: str) -> Optional[Book]:

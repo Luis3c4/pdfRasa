@@ -1,6 +1,6 @@
 flows:
   browse_catalog:
-    description: "muestra el catálogo de ebooks disponibles con sus precios. Se activa cuando el usuario dice: ver catálogo, muéstrame los libros, qué libros tienen, quiero ver el catálogo"
+    description: "muestra la lista completa del catálogo de ebooks disponibles con sus precios. Se activa cuando el usuario quiere ver todos los libros disponibles sin preguntar por un libro específico. Frases: ver catálogo, muéstrame los libros, qué libros tienen, quiero ver el catálogo, ver todos los libros, mostrar catálogo, qué tienes disponible"
     name: ver catálogo
     steps:
       - action: action_show_catalog

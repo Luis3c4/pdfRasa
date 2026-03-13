@@ -43,8 +43,5 @@ class ValidatePaymentScreenshotUrl(Action):
         if image_url:
             return [SlotSet("payment_screenshot_url", image_url)]
 
-        # No image found – inform the user and keep slot as None so the flow re-asks
-        dispatcher.utter_message(
-            text="No detecté ninguna imagen. Por favor envía la *captura de pantalla* de tu pago por Yape. 📸"
-        )
+        # No image found – return None so the collect step re-asks with utter_ask_payment_screenshot_url
         return [SlotSet("payment_screenshot_url", None)]

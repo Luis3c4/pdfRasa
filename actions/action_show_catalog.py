@@ -28,4 +28,4 @@ class ActionShowCatalog(Action):
                 f"   📄 {book.pages} páginas\n"
             )
         dispatcher.utter_message(text="\n".join(lines))
-        return [SlotSet("selected_book_id", None)]
+        return []

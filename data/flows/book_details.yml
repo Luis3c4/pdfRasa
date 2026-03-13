@@ -1,6 +1,6 @@
 flows:
   book_details:
-    description: muestra información detallada de un ebook específico como descripción, número de páginas y precio. Se activa cuando el usuario menciona el nombre de un libro o pide información sobre un libro en particular
+    description: "muestra información detallada de un ebook específico como descripción, número de páginas y precio. Solo se activa cuando el usuario menciona explícitamente el nombre o título de un libro concreto para saber más sobre ese libro en particular. No se activa para ver el catálogo completo."
     name: ver detalles de un libro
     steps:
       - collect: "selected_book_id"
@@ -11,5 +11,11 @@ flows:
           - if: "slots.return_value = 'not_found'"
             then:
               - action: utter_book_not_found
-                next: END
-          - else: END
+                next: show_catalog_on_not_found
+          - else: show_details
+      - id: show_catalog_on_not_found
+        action: action_show_catalog
+        next: END
+      - id: show_details
+        action: utter_book_details_full
+        next: END

@@ -7,13 +7,27 @@ flows:
         next: END
 
   pattern_cannot_handle:
-    description: el bot no puede manejar el mensaje del usuario
+    description: "el bot no puede manejar el mensaje del usuario"
     name: no puedo ayudar
     steps:
-      - action: utter_cannot_handle
+      - action: action_cannot_handle
 
   pattern_out_of_scope:
-    description: el usuario pregunta algo fuera del alcance del bot
+    description: "el usuario pregunta algo fuera del alcance del bot"
     name: fuera de alcance
     steps:
       - action: utter_out_of_scope
+
+  pattern_completed:
+    description: "flujo que se ejecuta cuando el usuario completa un caso de uso"
+    name: completado
+    steps:
+      - noop: true
+        next: END
+
+  pattern_continue_interrupted:
+    description: "flujo de reparación cuando el usuario cambia de tema"
+    name: continuar flujo interrumpido
+    steps:
+      - action: action_cancel_interrupted_flows
+        next: END

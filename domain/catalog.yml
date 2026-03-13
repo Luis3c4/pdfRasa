@@ -17,9 +17,23 @@ slots:
     type: text
     mappings:
       - type: controlled
+  book_description:
+    type: text
+    mappings:
+      - type: controlled
+  book_pages:
+    type: text
+    mappings:
+      - type: controlled
+  book_preview:
+    type: text
+    mappings:
+      - type: controlled
 
 responses:
   utter_ask_selected_book_id:
     - text: "¿Qué libro te interesa? Puedes decirme el nombre o el número del catálogo."
+  utter_book_details_full:
+    - text: "📖 *{book_title}*\n\n📝 {book_description}\n\n📄 *Páginas:* {book_pages}\n💰 *Precio:* {book_price}\n\n🔍 *Preview:* {book_preview}\n\n¿Te gustaría comprarlo? Solo dime *quiero comprarlo* o *comprar {book_title}*. 😊"
   utter_book_not_found:
     - text: "No encontré ese libro. Aquí está el catálogo disponible:"

@@ -50,9 +50,9 @@ vllm serve "BAAI/bge-m3" \
 ### Terminal 3 — Rasa
 ```bash
 cd /home/luis/Project/rasa/pdfRasa
-source ../.venv/bin/activate   # ajustar si el venv de rasa está en otro lugar
+source .venv/bin/activate   # ajustar si el venv de rasa está en otro lugar
 export VLLM_API_KEY="not-needed"
-
+rasa run --enable-api --cors "*"
 rasa train    # solo cuando haya cambios en flows/domain/config
 rasa inspect  # levanta el bot con UI de debug
 ```
@@ -60,7 +60,7 @@ rasa inspect  # levanta el bot con UI de debug
 ### Terminal 4 — Actions server (si usas acciones custom)
 ```bash
 cd /home/luis/Project/rasa/pdfRasa
-source ../.venv/bin/activate
+source .venv/bin/activate
 export VLLM_API_KEY="not-needed"
 
 rasa run actions

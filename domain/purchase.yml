@@ -3,6 +3,7 @@ version: "3.1"
 actions:
   - action_create_order
   - action_release_download
+  - action_reset_purchase_slots
   - validate_payment_screenshot_url
 
 slots:
@@ -20,6 +21,8 @@ slots:
       - type: from_llm
 
 responses:
+  utter_book_purchase_preview:
+    - text: "🔍 *Preview:* {book_preview}"
   utter_ask_purchase_confirmation:
     - text: "Quieres comprar *{book_title}* por *{book_price}* ¿Es correcto?"
       buttons:

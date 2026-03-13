@@ -7,9 +7,51 @@ responses:
     - text: "Lo siento, no entendí eso. ¿Puedes decirlo de otra manera?\n\nPuedo ayudarte a ver el catálogo, información de un libro o ayudarte a comprar."
   utter_out_of_scope:
     - text: "Eso está fuera de lo que puedo hacer. Puedo ayudarte a ver el catálogo de eBooks, obtener detalles de un libro o procesar una compra."
+  utter_clarification_options_rasa:
+    - text: "Necesito más información. ¿Qué te gustaría hacer: {{context.clarification_options}}?"
+      metadata:
+        rephrase: True
+        template: jinja
+  utter_clarification_no_options_rasa:
+    - text: "Necesito más información. ¿En qué te puedo ayudar?"
+      metadata:
+        rephrase: True
+  utter_ask_continue_interrupted_flow_confirmation:
+    - text: "¿Te gustaría continuar con {{context.interrupted_flow_options}}?"
+      metadata:
+        rephrase: True
+        template: jinja
+  utter_ask_interrupted_flow_to_continue:
+    - text: "¿Quieres retomar {{context.interrupted_flow_options}}?"
+      metadata:
+        rephrase: True
+        template: jinja
+  utter_can_do_something_else:
+    - text: "¿En qué más te puedo ayudar?"
+      metadata:
+        rephrase: True
+  utter_closing_words:
+    - text: "¡Aquí estaré si necesitas algo más!"
+      metadata:
+        rephrase: True
+  utter_ask_rephrase:
+    - text: "Lo siento, no pude entenderte. ¿Podrías reformularlo?"
+  utter_ask_still_there:
+    - text: "¡Hola! ¿Sigues ahí?"
+      metadata:
+        rephrase: True
+  utter_flow_cancelled_rasa:
+    - text: " "
+      metadata:
+        template: jinja
+  utter_internal_error_rasa:
+    - text: "Lo siento, tuve un problema. Por favor intenta nuevamente en unos minutos."
 
 slots:
   return_value:
     type: any
     mappings:
       - type: controlled
+
+actions:
+  - action_cannot_handle

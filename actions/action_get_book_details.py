@@ -8,26 +8,40 @@ from actions.catalog import get_all_books, get_book_by_id
 
 
 def _resolve_book_id(tracker: Tracker) -> str | None:
-    """Try to match selected_book_id slot against catalog by id or title (case-insensitive)."""
+    """Try to match selected_book_id slot against catalog by id or title (case-insensitive).
+    Falls back to searching in the latest user message text."""
     session_id = tracker.sender_id
-    raw = tracker.get_slot("selected_book_id")
-    if raw is None:
+    books = get_all_books(session_id)
+
+    def match(text: str) -> str | None:
+        if not text:
+            return None
+        text_lower = text.lower().strip()
+        # exact id match
+        for book in books:
+            if book.id == text_lower:
+                return book.id
+        # slot value is substring of title
+        for book in books:
+            if text_lower in book.title.lower():
+                return book.id
+        # any keyword from text found in title
+        words = [w for w in text_lower.split() if len(w) > 2]
+        for book in books:
+            title_lower = book.title.lower()
+            if any(w in title_lower for w in words):
+                return book.id
         return None
 
-    books = get_all_books(session_id)
-    raw_lower = raw.lower().strip()
+    # try slot first
+    raw = tracker.get_slot("selected_book_id")
+    result = match(raw)
+    if result:
+        return result
 
-    # exact id match
-    for book in books:
-        if book.id == raw_lower:
-            return book.id
-
-    # partial title match
-    for book in books:
-        if raw_lower in book.title.lower():
-            return book.id
-
-    return None
+    # fallback: search in the latest user message text
+    last_text = tracker.latest_message.get("text", "")
+    return match(last_text)
 
 
 class ActionGetBookDetails(Action):
@@ -46,20 +60,12 @@ class ActionGetBookDetails(Action):
         if book is None:
             return [SlotSet("return_value", "not_found")]
 
-        dispatcher.utter_message(
-            text=(
-                f"📖 *{book.title}*\n\n"
-                f"📝 {book.description}\n\n"
-                f"📄 *Páginas:* {book.pages}\n"
-                f"💰 *Precio:* {book.currency} {book.price}\n\n"
-                f"🔍 *Preview:* {book.preview}\n\n"
-                f"¿Te gustaría comprarlo? Solo dime *quiero comprarlo* o *comprar {book.title}*. 😊"
-            )
-        )
-
         return [
             SlotSet("selected_book_id", book.id),
             SlotSet("book_title", book.title),
             SlotSet("book_price", f"{book.currency} {book.price}"),
+            SlotSet("book_description", book.description),
+            SlotSet("book_pages", str(book.pages)),
+            SlotSet("book_preview", book.preview),
             SlotSet("return_value", "success"),
         ]
