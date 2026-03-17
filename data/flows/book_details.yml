@@ -1,6 +1,6 @@
 flows:
   book_details:
-    description: "muestra información detallada de un ebook específico como descripción, número de páginas y precio. Solo se activa cuando el usuario menciona explícitamente el nombre o título de un libro concreto para saber más sobre ese libro en particular. No se activa para ver el catálogo completo."
+    description: "muestra información detallada de un ebook específico y permite comprarlo. Se activa cuando el usuario menciona el nombre o una palabra clave del título de un libro concreto: 'recetas', 'keto', '200 recetas', 'bitcoin', 'mastering', etc. También se activa cuando el usuario dice querer saber más, obtener detalles, información o datos de un libro específico. No se activa para ver el catálogo completo. No existe ningún flow llamado 'provide_info'; usar este flow para solicitudes de información sobre libros."
     name: ver detalles de un libro
     steps:
       - collect: "selected_book_id"
@@ -12,10 +12,51 @@ flows:
             then:
               - action: utter_book_not_found
                 next: show_catalog_on_not_found
-          - else: show_details
+          - else: show_preview
       - id: show_catalog_on_not_found
         action: action_show_catalog
         next: END
-      - id: show_details
-        action: utter_book_details_full
+      - id: show_preview
+        action: utter_book_purchase_preview
+        next: confirm_purchase
+      - id: confirm_purchase
+        collect: "purchase_confirmation"
+        description: "Confirma si el usuario quiere proceder con la compra. Establece true si el usuario dice: sí, si, yes, confirmo, quiero, acepto, correcto, ok, dale, vamos, proceder. Establece false si dice: no, cancelar, no quiero, mejor no."
+        ask_before_filling: true
+        rejections:
+          - if: "slots.purchase_confirmation is null"
+            utter: utter_ask_purchase_confirmation
+        next:
+          - if: "slots.purchase_confirmation is not true"
+            then:
+              - action: utter_purchase_cancelled
+                next: reset_slots
+          - else: show_payment_instructions
+      - id: reset_slots
+        action: action_reset_purchase_slots
+        next: END
+      - id: show_payment_instructions
+        action: utter_payment_instructions
+        next: wait_for_screenshot
+      - id: wait_for_screenshot
+        collect: payment_screenshot_url
+        description: "el usuario envía la captura de pantalla de su pago como imagen adjunta"
+        ask_before_filling: true
+        next: validate_screenshot
+      - id: validate_screenshot
+        action: validate_payment_screenshot_url
+        next:
+          - if: "slots.payment_screenshot_url is not null"
+            then: create_order
+          - else: wait_for_screenshot
+      - id: create_order
+        action: action_create_order
+        next:
+          - if: "slots.return_value = 'error'"
+            then:
+              - action: utter_purchase_error
+                next: END
+          - else: release_download
+      - id: release_download
+        action: action_release_download
         next: END

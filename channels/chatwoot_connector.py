@@ -49,6 +49,8 @@ class ChatwootOutput(OutputChannel):
                     )
 
     async def send_text_message(self, recipient_id: Text, text: Text, **kwargs: Any) -> None:
+        if not text or text.strip() in ("-", ""):
+            return
         await self._post(text)
 
     async def send_text_with_buttons(
@@ -119,6 +121,10 @@ class ChatwootInput(InputChannel):
             # Use conversation_id for session continuity across turns
             user_id = f"chatwoot_{conversation_id}"
 
+            # When user sends only an image, use a descriptive placeholder so the LLM
+            # understands the context and does not trigger pattern_cannot_handle
+            message_text = content if content else "imagen adjunta"
+
             output = ChatwootOutput(
                 url=self.url,
                 account_id=self.account_id,
@@ -127,7 +133,7 @@ class ChatwootInput(InputChannel):
             )
 
             msg = UserMessage(
-                text=content if content else "📎",
+                text=message_text,
                 output_channel=output,
                 sender_id=user_id,
                 # Pass attachments in metadata so validate_payment_screenshot can read them

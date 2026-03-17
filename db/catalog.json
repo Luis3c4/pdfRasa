@@ -8,5 +8,15 @@
     "currency": "S/",
     "preview": "Los primeros 3 capítulos cubren: desayunos energéticos, almuerzos rápidos y cenas ligeras.",
     "download_link": "https://drive.google.com/file/d/13TFwHbyAbffmicwMNH78-mluRV7q3doa/view?usp=sharing"
+  },
+  {
+    "id": "book_002",
+    "title": "Mastering Bitcoin",
+    "description": "Una guía completa para entender y dominar Bitcoin, desde los conceptos básicos hasta las técnicas avanzadas de inversión y seguridad.",
+    "pages": 200,
+    "price": 7,
+    "currency": "S/",
+    "preview": "Los primeros 3 capítulos cubren: introducción a Bitcoin, configuración de billeteras y seguridad básica.",
+    "download_link": "https://drive.google.com/file/d/13TFwHbyAbffmicwMNH78-mluRV7q3doa/view?usp=sharing"
   }
 ]

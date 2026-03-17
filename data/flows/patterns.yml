@@ -4,6 +4,9 @@ flows:
     name: saludo
     steps:
       - action: utter_greet
+        next: show_catalog
+      - id: show_catalog
+        action: action_show_catalog
         next: END
 
   pattern_cannot_handle:
@@ -16,7 +19,7 @@ flows:
     description: "el usuario pregunta algo fuera del alcance del bot"
     name: fuera de alcance
     steps:
-      - action: utter_out_of_scope
+      - action: action_free_response
 
   pattern_completed:
     description: "flujo que se ejecuta cuando el usuario completa un caso de uso"
@@ -30,4 +33,11 @@ flows:
     name: continuar flujo interrumpido
     steps:
       - action: action_cancel_interrupted_flows
+        next: END
+
+  pattern_correction:
+    description: "flujo de corrección de slots"
+    name: corrección
+    steps:
+      - noop: true
         next: END

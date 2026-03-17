@@ -2,7 +2,7 @@ version: "3.1"
 
 responses:
   utter_greet:
-    - text: "¡Hola! 👋 Bienvenido a nuestra tienda de eBooks. Puedo ayudarte a:\n\n📚 Ver el *catálogo* de libros disponibles\n📖 Obtener *información* de un libro específico\n🛒 *Comprar* un eBook\n\n¿En qué te puedo ayudar?"
+    - text: "¡Hola! 👋 Bienvenido a nuestra tienda de eBooks. Aquí tienes nuestros libros disponibles:"
   utter_cannot_handle:
     - text: "Lo siento, no entendí eso. ¿Puedes decirlo de otra manera?\n\nPuedo ayudarte a ver el catálogo, información de un libro o ayudarte a comprar."
   utter_out_of_scope:
@@ -40,10 +40,10 @@ responses:
     - text: "¡Hola! ¿Sigues ahí?"
       metadata:
         rephrase: True
+  utter_corrected_previous_input:
+    - text: "-"
   utter_flow_cancelled_rasa:
-    - text: " "
-      metadata:
-        template: jinja
+    - text: "-"
   utter_internal_error_rasa:
     - text: "Lo siento, tuve un problema. Por favor intenta nuevamente en unos minutos."
 
@@ -55,3 +55,4 @@ slots:
 
 actions:
   - action_cannot_handle
+  - action_free_response

@@ -1,10 +1,17 @@
 flows:
   purchase:
-    description: "comprar un ebook o pdf, realizar el pago por Yape y recibir el link de descarga"
+    description: "comprar un ebook o pdf, realizar el pago por Yape y recibir el link de descarga. También se activa cuando el usuario menciona el nombre o palabra clave de un libro con intención de comprarlo, como 'quiero recetas', 'dame el de bitcoin', 'comprar keto', etc."
     name: comprar un ebook
     steps:
-      - collect: "selected_book_id"
-        description: "el nombre o identificador del libro que el usuario quiere comprar"
+      - action: action_resolve_book
+        next:
+          - if: "slots.selected_book_id is not null"
+            then: get_book_for_purchase
+          - else: ask_book_name
+      - id: ask_book_name
+        collect: "selected_book_id"
+        description: "el nombre completo o parcial del libro que el usuario desea comprar. Acepta cualquier palabra clave como 'bitcoin', 'keto', 'recetas', etc."
+        next: get_book_for_purchase
       - id: get_book_for_purchase
         action: action_get_book_details
         next:
@@ -21,7 +28,11 @@ flows:
         next: confirm_purchase
       - id: confirm_purchase
         collect: "purchase_confirmation"
+        description: "Confirma si el usuario quiere proceder con la compra. Establece true si el usuario dice: sí, si, yes, confirmo, quiero, acepto, correcto, ok, dale, vamos, proceder. Establece false si dice: no, cancelar, no quiero, mejor no."
         ask_before_filling: true
+        rejections:
+          - if: "slots.purchase_confirmation is null"
+            utter: utter_ask_purchase_confirmation
         next:
           - if: "slots.purchase_confirmation is not true"
             then:

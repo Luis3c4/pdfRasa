@@ -3,6 +3,7 @@ version: "3.1"
 actions:
   - action_show_catalog
   - action_get_book_details
+  - action_resolve_book
 
 slots:
   selected_book_id:
@@ -32,7 +33,7 @@ slots:
 
 responses:
   utter_ask_selected_book_id:
-    - text: "¿Qué libro te interesa? Puedes decirme el nombre o el número del catálogo."
+    - text: "¿Qué libro te interesa comprar?"
   utter_book_details_full:
     - text: "📖 *{book_title}*\n\n📝 {book_description}\n\n📄 *Páginas:* {book_pages}\n💰 *Precio:* {book_price}\n\n🔍 *Preview:* {book_preview}\n\n¿Te gustaría comprarlo? Solo dime *quiero comprarlo* o *comprar {book_title}*. 😊"
   utter_book_not_found:

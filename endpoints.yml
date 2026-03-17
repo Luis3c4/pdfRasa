@@ -58,6 +58,7 @@ model_groups:
         api_key: ${VLLM_API_KEY}
         request_timeout: 120
         max_tokens: 512
+        temperature: 0.1
   - id: openai-gpt-4o
     models:
       - provider: openai
