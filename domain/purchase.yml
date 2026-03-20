@@ -35,7 +35,7 @@ responses:
   utter_ask_payment_screenshot_url:
     - text: "Por favor envía la captura de pantalla de tu pago por Yape. 📸"
   utter_order_created:
-    - text: "✅ ¡Pago recibido! Tu orden *#{order_id}* fue registrada.\n\nEn un momento recibirás el link de descarga."
+    - text: "✅ ¡Pago recibido! Tu orden *#{order_id}* fue registrada.\n\nEn un momento recibirás el link de descarga aquí mismo, en este chat."
   utter_purchase_cancelled:
     - text: "✋ Entendido, cancelé la compra. Si cambias de idea, ¡aquí estaré!"
   utter_purchase_error:

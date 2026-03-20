@@ -1,6 +1,6 @@
 flows:
   purchase:
-    description: "comprar un ebook o pdf, realizar el pago por Yape y recibir el link de descarga. También se activa cuando el usuario menciona el nombre o palabra clave de un libro con intención de comprarlo, como 'quiero recetas', 'dame el de bitcoin', 'comprar keto', etc."
+    description: "comprar un ebook o pdf, realizar el pago por Yape y recibir el link de descarga directamente en este chat. El proceso es: el usuario elige un libro, confirma la compra, paga por Yape al número 912201963, envía la captura de pantalla del pago por este chat, y se le entrega el link de descarga aquí mismo en la conversación. No se envía nada por correo electrónico. También se activa cuando el usuario menciona el nombre o palabra clave de un libro con intención de comprarlo, como 'quiero recetas', 'dame el de bitcoin', 'comprar keto', etc."
     name: comprar un ebook
     steps:
       - action: action_resolve_book

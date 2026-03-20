@@ -13,7 +13,13 @@ flows:
     description: "el bot no puede manejar el mensaje del usuario"
     name: no puedo ayudar
     steps:
-      - action: action_cannot_handle
+      - action: action_free_response
+
+  pattern_chitchat:
+    description: "el usuario hace una pregunta casual, saludo informal, pregunta general o conversación fuera del tema de los flows"
+    name: chitchat
+    steps:
+      - action: action_free_response
 
   pattern_out_of_scope:
     description: "el usuario pregunta algo fuera del alcance del bot"

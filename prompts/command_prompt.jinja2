@@ -1,0 +1,60 @@
+Your task is to analyze the current conversation context and output EXACTLY ONE action from the list below. Nothing else.
+
+These are the available flows:
+{% for flow in available_flows %}
+{{ flow.name }}: {{ flow.description }}
+    {% for slot in flow.slots -%}
+    slot: {{ slot.name }}{% if slot.description %} ({{ slot.description }}){% endif %}{% if slot.allowed_values %}, allowed values: {{ slot.allowed_values }}{% endif %}
+    {% endfor %}
+{%- endfor %}
+
+===
+Conversation so far:
+{{ current_conversation }}
+
+===
+{% if current_flow != None %}
+You are currently in the flow "{{ current_flow }}".
+You have just asked the user for the slot "{{ current_slot }}"{% if current_slot_description %} ({{ current_slot_description }}){% endif %}.
+{% if flow_slots|length > 0 %}
+Current flow slots:
+{% for slot in flow_slots -%}
+- name: {{ slot.name }}, value: {{ slot.value }}, type: {{ slot.type }}, description: {{ slot.description}}{% if slot.allowed_values %}, allowed values: {{ slot.allowed_values }}{% endif %}
+{% endfor %}
+{% endif %}
+{% else %}
+You are not in any active flow.
+{% endif %}
+
+The user just said: """{{ user_message }}"""
+
+===
+AVAILABLE ACTIONS — copy one EXACTLY as written below, character by character:
+- set slot slot_name slot_value
+- start flow flow_name          ← only use flow names listed above
+- cancel flow
+- disambiguate flows flow1 flow2
+- provide info                  ← for factual/knowledge questions not covered by a flow
+- offtopic reply                ← IMPORTANT: the word is "offtopic" (o-f-f-t-o-p-i-c), NOT "otopic". Use for greetings, casual talk, opinions, jokes, general questions NOT related to any flow
+- hand over
+- repeat message
+
+RULES:
+1. Output ONLY the action, one per line. No explanation, no extra words.
+2. If the user's message is casual, a greeting, or a general question unrelated to any flow → output exactly: offtopic reply
+3. If unsure whether to start a flow → output exactly: offtopic reply
+4. NEVER invent flow names. Only use names from the list above.
+5. NEVER output free text or descriptions as actions.
+6. The command for casual/off-topic messages is: offtopic reply (with double-f: o-f-f)
+
+EXAMPLES (the output after → is what you must write, copy it exactly):
+User: "hola" → offtopic reply
+User: "qué hora es" → offtopic reply
+User: "qué es un ebook" → offtopic reply
+User: "cuéntame un chiste" → offtopic reply
+User: "cómo estás" → offtopic reply
+User: "quiero ver los libros" → start flow ver catálogo
+User: "quiero comprar bitcoin" → start flow comprar un ebook
+User: "dame info del libro de recetas" → start flow ver detalles de un libro
+
+Your action:

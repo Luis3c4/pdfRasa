@@ -3,6 +3,7 @@ assistant_id: ferocious-parameter
 language: es
 pipeline:
 - name: CompactLLMCommandGenerator
+  prompt_template: "prompts/command_prompt.jinja2"
   llm:  
     model_group: self_hosted_llm
   flow_retrieval:
