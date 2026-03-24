@@ -33,6 +33,7 @@ class Order(BaseModel):
     buyer_name: str
     screenshot_url: str
     created_at: str
+    status: str = "approved"  # "approved" | "needs_review" | "rejected"
 
 
 def get_session_db_path(session_id: str) -> str:
@@ -73,7 +74,14 @@ def get_book_by_id(session_id: str, book_id: str) -> Optional[Book]:
     return None
 
 
-def create_order(session_id: str, book_id: str, book_title: str, buyer_name: str, screenshot_url: str) -> Order:
+def create_order(
+    session_id: str,
+    book_id: str,
+    book_title: str,
+    buyer_name: str,
+    screenshot_url: str,
+    status: str = "approved",
+) -> Order:
     raw_orders = read_db(session_id, ORDERS)
     order = Order(
         order_id=str(uuid.uuid4())[:8].upper(),
@@ -82,6 +90,7 @@ def create_order(session_id: str, book_id: str, book_title: str, buyer_name: str
         buyer_name=buyer_name,
         screenshot_url=screenshot_url,
         created_at=datetime.utcnow().isoformat(),
+        status=status,
     )
     raw_orders.append(order.dict())
     write_db(session_id, ORDERS, raw_orders)

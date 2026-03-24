@@ -1,6 +1,6 @@
 flows:
   purchase:
-    description: "comprar un ebook o pdf, realizar el pago por Yape y recibir el link de descarga directamente en este chat. El proceso es: el usuario elige un libro, confirma la compra, paga por Yape al número 912201963, envía la captura de pantalla del pago por este chat, y se le entrega el link de descarga aquí mismo en la conversación. No se envía nada por correo electrónico. También se activa cuando el usuario menciona el nombre o palabra clave de un libro con intención de comprarlo, como 'quiero recetas', 'dame el de bitcoin', 'comprar keto', etc."
+    description: "comprar un ebook o pdf, realizar el pago por Yape y recibir el link de descarga directamente en este chat. El proceso es: el usuario elige un libro, confirma la compra, paga por Yape al número 923252274, envía la captura de pantalla del pago por este chat, y se le entrega el link de descarga aquí mismo en la conversación. No se envía nada por correo electrónico. También se activa cuando el usuario menciona el nombre o palabra clave de un libro con intención de comprarlo, como 'quiero recetas', 'dame el de bitcoin', 'comprar keto', etc."
     name: comprar un ebook
     steps:
       - action: action_resolve_book
@@ -53,9 +53,16 @@ flows:
       - id: validate_screenshot
         action: validate_payment_screenshot_url
         next:
-          - if: "slots.payment_screenshot_url is not null"
+          - if: "slots.payment_screenshot_url is null"
+            then: wait_for_screenshot
+          - if: "slots.payment_validation_status = 'approved'"
             then: create_order
-          - else: wait_for_screenshot
+          - if: "slots.payment_validation_status = 'needs_review'"
+            then: create_order_pending
+          - else: ocr_rejected
+      - id: ocr_rejected
+        action: utter_payment_ocr_rejected
+        next: wait_for_screenshot
       - id: create_order
         action: action_create_order
         next:
@@ -66,4 +73,15 @@ flows:
           - else: release_download
       - id: release_download
         action: action_release_download
+        next: END
+      - id: create_order_pending
+        action: action_create_order
+        next:
+          - if: "slots.return_value = 'error'"
+            then:
+              - action: utter_purchase_error
+                next: END
+          - else: escalate_human
+      - id: escalate_human
+        action: action_escalate_to_human
         next: END

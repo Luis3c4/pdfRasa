@@ -17,18 +17,20 @@ class ActionCreateOrder(Action):
         book_id = tracker.get_slot("selected_book_id")
         book_title = tracker.get_slot("book_title")
         screenshot_url = tracker.get_slot("payment_screenshot_url")
+        validation_status = tracker.get_slot("payment_validation_status") or "needs_review"
         # Use WhatsApp sender ID (phone number) as buyer identifier
         buyer_name = tracker.sender_id
 
         if not all([book_id, book_title, screenshot_url]):
             return [SlotSet("return_value", "error")]
 
-        order = create_order( 
+        order = create_order(
             session_id=tracker.sender_id,
             book_id=str(book_id),
             book_title=str(book_title),
             buyer_name=buyer_name,
             screenshot_url=str(screenshot_url),
+            status=validation_status,
         )
 
         dispatcher.utter_message(

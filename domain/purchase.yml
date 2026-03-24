@@ -4,10 +4,15 @@ actions:
   - action_create_order
   - action_release_download
   - action_reset_purchase_slots
+  - action_escalate_to_human
   - validate_payment_screenshot_url
 
 slots:
   payment_screenshot_url:
+    type: text
+    mappings:
+      - type: controlled
+  payment_validation_status:
     type: text
     mappings:
       - type: controlled
@@ -31,7 +36,7 @@ responses:
         - payload: "/SetSlots(purchase_confirmation=false)"
           title: "No, cancelar"
   utter_payment_instructions:
-    - text: "💳 *Instrucciones de pago*\n\nRealiza tu pago por *Yape* al número:\n📱 *912201963*\n\nMonto: *{book_price}*\n📚 Libro: *{book_title}*\n\nUna vez realizado el pago, envíame la *captura de pantalla* de la transacción por aquí."
+    - text: "💳 *Instrucciones de pago*\n\nRealiza tu pago por *Yape* al número:\n📱 *923252274*\n\nMonto: *{book_price}*\n📚 Libro: *{book_title}*\n\nUna vez realizado el pago, envíame la *captura de pantalla* de la transacción por aquí."
   utter_ask_payment_screenshot_url:
     - text: "Por favor envía la captura de pantalla de tu pago por Yape. 📸"
   utter_order_created:
@@ -40,3 +45,7 @@ responses:
     - text: "✋ Entendido, cancelé la compra. Si cambias de idea, ¡aquí estaré!"
   utter_purchase_error:
     - text: "Algo salió mal al procesar tu orden. Por favor intenta nuevamente o escribe *hola* para comenzar."
+  utter_payment_ocr_rejected:
+    - text: "No pude verificar tu captura de pago. 😕 Asegúrate de enviar la pantalla completa de confirmación de Yape (donde se vea el monto, el número destino y el estado 'Exitoso'). Por favor, envíala nuevamente. 📸"
+  utter_payment_needs_review:
+    - text: "✅ Recibí tu captura. Necesita una revisión manual por parte de nuestro equipo. Un agente la verificará en breve y te enviará el link de descarga por este mismo chat. ¡Gracias por tu paciencia! 🙏"
