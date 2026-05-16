@@ -1,5 +1,6 @@
 """Custom Rasa input/output channel for Chatwoot Agent Bot integration."""
 import logging
+import os
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Text
 
 import aiohttp
@@ -9,6 +10,18 @@ from sanic.request import Request
 from sanic.response import HTTPResponse
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_credential(value: Any, default: str) -> str:
+    if value is None:
+        return default
+
+    resolved = str(value).strip()
+    if resolved.startswith("${") and resolved.endswith("}"):
+        env_name = resolved[2:-1].strip()
+        return os.getenv(env_name, default)
+
+    return resolved or default
 
 
 class ChatwootOutput(OutputChannel):
@@ -28,6 +41,8 @@ class ChatwootOutput(OutputChannel):
     def _headers(self) -> Dict[str, str]:
         return {
             "api_access_token": self.access_token,
+            # Some proxy setups only forward standard Authorization headers.
+            "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
         }
 
@@ -47,6 +62,12 @@ class ChatwootOutput(OutputChannel):
                     logger.error(
                         "Chatwoot API error %s: %s", resp.status, body
                     )
+                    if resp.status == 401:
+                        logger.error(
+                            "Chatwoot returned 401 Unauthorized. Verify CHATWOOT_ACCESS_TOKEN and, "
+                            "if using Nginx/reverse proxy, ensure headers with underscores are allowed "
+                            "(underscores_in_headers on;)."
+                        )
 
     async def send_text_message(self, recipient_id: Text, text: Text, **kwargs: Any) -> None:
         if not text or text.strip() in ("-", ""):
@@ -76,9 +97,9 @@ class ChatwootInput(InputChannel):
     def from_credentials(cls, credentials: Optional[Dict[Text, Any]]) -> "ChatwootInput":
         credentials = credentials or {}
         return cls(
-            url=credentials.get("url", "http://localhost:3000"),
-            account_id=credentials.get("account_id", "1"),
-            access_token=credentials.get("access_token", ""),
+            url=_resolve_credential(credentials.get("url"), "http://localhost:3000"),
+            account_id=_resolve_credential(credentials.get("account_id"), "1"),
+            access_token=_resolve_credential(credentials.get("access_token"), ""),
         )
 
     def __init__(self, url: str, account_id: str, access_token: str) -> None:

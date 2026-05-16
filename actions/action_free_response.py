@@ -57,8 +57,8 @@ class ActionFreeResponse(Action):
         domain: Dict[str, Any],
     ) -> List[Dict[Text, Any]]:
         client = OpenAI(
-            api_key=os.environ.get("VLLM_API_KEY", "fake-key"),
-            base_url="http://localhost:8000/v1",
+            api_key=os.environ.get("NVIDIA_API_KEY"),
+            base_url="https://integrate.api.nvidia.com/v1",
         )
 
         messages: List[Dict[str, str]] = [{"role": "system", "content": _build_system_prompt()}]
@@ -84,10 +84,11 @@ class ActionFreeResponse(Action):
 
         try:
             response = client.chat.completions.create(
-                model="Qwen/Qwen2.5-7B-Instruct",
+                model="qwen/qwen3-coder-480b-a35b-instruct",
                 messages=messages,
-                max_tokens=512,
-                temperature=0.7,
+                max_tokens=65536,
+                temperature=0.6,
+                top_p=0.95,
             )
             answer = response.choices[0].message.content.strip()
             dispatcher.utter_message(text=answer)

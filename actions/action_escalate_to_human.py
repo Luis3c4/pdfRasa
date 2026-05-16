@@ -65,6 +65,8 @@ class ActionEscalateToHuman(Action):
         )
         headers = {
             "api_access_token": CHATWOOT_ACCESS_TOKEN,
+            # Some proxy setups only forward standard Authorization headers.
+            "Authorization": f"Bearer {CHATWOOT_ACCESS_TOKEN}",
             "Content-Type": "application/json",
         }
         try:
@@ -72,6 +74,12 @@ class ActionEscalateToHuman(Action):
             if response.status_code in (200, 201):
                 logger.info("Conversation %s escalated to human (status=pending).", conversation_id)
                 return True
+            if response.status_code == 401:
+                logger.error(
+                    "Chatwoot returned 401 Unauthorized. Verify CHATWOOT_ACCESS_TOKEN and, if "
+                    "using Nginx/reverse proxy, ensure headers with underscores are allowed "
+                    "(underscores_in_headers on;)."
+                )
             logger.error(
                 "Chatwoot PATCH %s returned %s: %s",
                 url,

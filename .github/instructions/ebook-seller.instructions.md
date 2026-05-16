@@ -146,8 +146,8 @@ order = create_order(tracker.sender_id, book_id, book_title, buyer_name, screens
 ## Running Locally (4 terminals)
 
 ```bash
-# Terminal 1 — LLM (Qwen 2.5-7B)
-vllm serve Qwen/Qwen2.5-7B-Instruct --port 8000
+# Terminal 1 — LLM (Qwen 2.5-3B)
+vllm serve Qwen/Qwen2.5-3B-Instruct --port 8000
 
 # Terminal 2 — Embeddings (BGE-M3)
 vllm serve BAAI/bge-m3 --port 8001
