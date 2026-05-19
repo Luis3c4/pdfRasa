@@ -1,0 +1,19 @@
+from typing import Any, Dict, List, Text
+
+from rasa_sdk import Action, Tracker
+from rasa_sdk.events import SlotSet
+from rasa_sdk.executor import CollectingDispatcher
+
+
+class ActionClearPaymentState(Action):
+    def name(self) -> str:
+        return "action_clear_payment_state"
+
+    def run(
+        self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[str, Any]
+    ) -> List[Dict[Text, Any]]:
+        return [
+            SlotSet("payment_screenshot_url", None),
+            SlotSet("payment_validation_status", None),
+            SlotSet("order_id", None),
+        ]

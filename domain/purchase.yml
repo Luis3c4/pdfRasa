@@ -4,6 +4,7 @@ actions:
   - action_create_order
   - action_release_download
   - action_reset_purchase_slots
+  - action_clear_payment_state
   - action_escalate_to_human
   - validate_payment_screenshot_url
 

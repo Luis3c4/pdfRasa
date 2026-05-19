@@ -1,10 +1,17 @@
 flows:
   book_details:
-    description: "muestra información detallada de un ebook específico y permite comprarlo. Se activa cuando el usuario menciona el nombre o una palabra clave del título de un libro concreto: 'recetas', 'keto', '200 recetas', 'bitcoin', 'mastering', etc. También se activa cuando el usuario dice querer saber más, obtener detalles, información o datos de un libro específico. No se activa para ver el catálogo completo. No existe ningún flow llamado 'provide_info'; usar este flow para solicitudes de información sobre libros."
+    description: "muestra información detallada del único ebook disponible. En este catálogo solo existe '200 recetas KETO'. Se activa cuando el usuario pide descripción, preview, páginas, contenido o detalles del libro, o menciona el título o una palabra clave como 'recetas', 'keto', '200 recetas'. No se usa para mensajes de compra como 'quiero comprarlo', 'comprarlo' o 'lo quiero'; para eso usar el flow 'comprar un ebook'. No se activa para ver el catálogo completo. No existe ningún flow llamado 'provide_info'; usar este flow para solicitudes de información sobre libros."
     name: ver detalles de un libro
     steps:
-      - collect: "selected_book_id"
+      - action: action_resolve_book
+        next:
+          - if: "slots.selected_book_id is not null"
+            then: get_details
+          - else: ask_book_name
+      - id: ask_book_name
+        collect: "selected_book_id"
         description: "el nombre o identificador del libro sobre el que el usuario quiere información"
+        next: get_details
       - id: get_details
         action: action_get_book_details
         next:
@@ -31,7 +38,9 @@ flows:
             then:
               - action: utter_purchase_cancelled
                 next: reset_slots
-          - else: show_payment_instructions
+          - else:
+              - action: action_clear_payment_state
+                next: show_payment_instructions
       - id: reset_slots
         action: action_reset_purchase_slots
         next: END
@@ -46,9 +55,13 @@ flows:
       - id: validate_screenshot
         action: validate_payment_screenshot_url
         next:
-          - if: "slots.payment_screenshot_url is not null"
+          - if: "slots.payment_screenshot_url is null"
+            then: wait_for_screenshot
+          - if: "slots.payment_validation_status = 'approved'"
             then: create_order
-          - else: wait_for_screenshot
+          - if: "slots.payment_validation_status = 'needs_review'"
+            then: create_order_pending
+          - else: ocr_rejected
       - id: create_order
         action: action_create_order
         next:
@@ -59,4 +72,18 @@ flows:
           - else: release_download
       - id: release_download
         action: action_release_download
+        next: END
+      - id: ocr_rejected
+        action: utter_payment_ocr_rejected
+        next: wait_for_screenshot
+      - id: create_order_pending
+        action: action_create_order
+        next:
+          - if: "slots.return_value = 'error'"
+            then:
+              - action: utter_purchase_error
+                next: END
+          - else: escalate_human
+      - id: escalate_human
+        action: action_escalate_to_human
         next: END

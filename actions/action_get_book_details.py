@@ -13,6 +13,13 @@ def _resolve_book_id(tracker: Tracker) -> str | None:
     session_id = tracker.sender_id
     books = get_all_books(session_id)
 
+    if not books:
+        return None
+
+    # Single-product mode: resolve deterministically to the only catalog item.
+    if len(books) == 1:
+        return books[0].id
+
     def match(text: str) -> str | None:
         if not text:
             return None
@@ -41,7 +48,13 @@ def _resolve_book_id(tracker: Tracker) -> str | None:
 
     # fallback: search in the latest user message text
     last_text = tracker.latest_message.get("text", "")
-    return match(last_text)
+    result = match(last_text)
+    if result:
+        return result
+
+    # Single-book store fallback: if nothing matched, use the only available book.
+    # This keeps purchase-like messages such as "lo quiero" on the default product.
+    return books[0].id
 
 
 class ActionGetBookDetails(Action):

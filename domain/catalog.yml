@@ -33,8 +33,8 @@ slots:
 
 responses:
   utter_ask_selected_book_id:
-    - text: "¿Qué libro te interesa comprar?"
+    - text: "Por ahora tenemos un solo eBook disponible: *200 recetas KETO* por *S/ 7*. Si deseas, escribe *quiero comprarlo*."
   utter_book_details_full:
-    - text: "📖 *{book_title}*\n\n📝 {book_description}\n\n📄 *Páginas:* {book_pages}\n💰 *Precio:* {book_price}\n\n🔍 *Preview:* {book_preview}\n\n¿Te gustaría comprarlo? Solo dime *quiero comprarlo* o *comprar {book_title}*. 😊"
+    - text: "📖 *200 recetas KETO*\n\n📝 Aprende a preparar deliciosas recetas KETO para mantener una dieta baja en carbohidratos y alta en grasas saludables. Incluye desayunos, almuerzos, cenas y snacks.\n\n📄 *Páginas:* 200\n💰 *Precio:* S/ 7\n\n🔍 *Preview:* Los primeros 3 capítulos cubren: desayunos energéticos, almuerzos rápidos y cenas ligeras.\n\n¿Te gustaría comprarlo? Solo dime *quiero comprarlo*. 😊"
   utter_book_not_found:
-    - text: "No encontré ese libro. Aquí está el catálogo disponible:"
+    - text: "No encontré ese libro. Por ahora solo tenemos *200 recetas KETO*. Si deseas comprarlo, escribe *quiero comprarlo*."

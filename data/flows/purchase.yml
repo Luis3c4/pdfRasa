@@ -1,16 +1,9 @@
 flows:
   purchase:
-    description: "comprar un ebook o pdf, realizar el pago por Yape y recibir el link de descarga directamente en este chat. El proceso es: el usuario elige un libro, confirma la compra, paga por Yape al número 923252274, envía la captura de pantalla del pago por este chat, y se le entrega el link de descarga aquí mismo en la conversación. No se envía nada por correo electrónico. También se activa cuando el usuario menciona el nombre o palabra clave de un libro con intención de comprarlo, como 'quiero recetas', 'dame el de bitcoin', 'comprar keto', etc."
+    description: "comprar el único ebook disponible, realizar el pago por Yape y recibir el link de descarga directamente en este chat. En este catálogo solo se vende '200 recetas KETO', así que frases como 'quiero comprarlo', 'comprar el libro', 'lo quiero' o referencias como 'ese' apuntan a ese producto. El proceso es: el usuario confirma la compra, paga por Yape al número 923252274, envía la captura de pantalla del pago por este chat, y se le entrega el link de descarga aquí mismo en la conversación. No se envía nada por correo electrónico."
     name: comprar un ebook
     steps:
       - action: action_resolve_book
-        next:
-          - if: "slots.selected_book_id is not null"
-            then: get_book_for_purchase
-          - else: ask_book_name
-      - id: ask_book_name
-        collect: "selected_book_id"
-        description: "el nombre completo o parcial del libro que el usuario desea comprar. Acepta cualquier palabra clave como 'bitcoin', 'keto', 'recetas', etc."
         next: get_book_for_purchase
       - id: get_book_for_purchase
         action: action_get_book_details
@@ -38,7 +31,9 @@ flows:
             then:
               - action: utter_purchase_cancelled
                 next: reset_slots
-          - else: show_payment_instructions
+          - else:
+              - action: action_clear_payment_state
+                next: show_payment_instructions
       - id: reset_slots
         action: action_reset_purchase_slots
         next: END
@@ -47,7 +42,7 @@ flows:
         next: wait_for_screenshot
       - id: wait_for_screenshot
         collect: payment_screenshot_url
-        description: "el usuario envía la captura de pantalla de su pago. Cualquier mensaje del usuario en este punto (texto o imagen adjunta) debe hacer avanzar el flujo. Si el usuario envía una imagen, establecer el slot en 'pendiente'."
+        description: "el usuario envía la captura de pantalla de su pago como imagen adjunta. No llenar este slot con texto normal; si no hay imagen, mantener null."
         ask_before_filling: true
         next: validate_screenshot
       - id: validate_screenshot

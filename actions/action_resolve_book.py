@@ -7,6 +7,18 @@ from rasa_sdk.executor import CollectingDispatcher
 from actions.catalog import get_all_books
 
 
+def _book_to_events(book) -> list[SlotSet]:
+    """Build slot events for a resolved book so downstream steps never see empty fields."""
+    return [
+        SlotSet("selected_book_id", book.id),
+        SlotSet("book_title", book.title),
+        SlotSet("book_price", f"{book.currency} {book.price}"),
+        SlotSet("book_description", book.description),
+        SlotSet("book_pages", str(book.pages)),
+        SlotSet("book_preview", book.preview),
+    ]
+
+
 def _fuzzy_match_book(text: str, books) -> str | None:
     """Return book.id if text (partial or full) matches any book title, else None."""
     if not text:
@@ -44,8 +56,18 @@ class ActionResolveBook(Action):
         self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[str, Any]
     ) -> List[Dict[Text, Any]]:
         books = get_all_books(tracker.sender_id)
+        if not books:
+            return []
+
+        # Single-product mode: always resolve to the only available book.
+        if len(books) == 1:
+            return _book_to_events(books[0])
+
         last_text = tracker.latest_message.get("text", "")
         book_id = _fuzzy_match_book(last_text, books)
         if book_id:
+            for book in books:
+                if book.id == book_id:
+                    return _book_to_events(book)
             return [SlotSet("selected_book_id", book_id)]
         return []

@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Text
+import uuid
 
 from rasa_sdk import Action, Tracker
 from rasa_sdk.events import SlotSet
@@ -24,21 +25,28 @@ class ActionCreateOrder(Action):
         if not all([book_id, book_title, screenshot_url]):
             return [SlotSet("return_value", "error")]
 
+        # Guard against accidental slot filling with plain text instead of a real image URL.
+        screenshot_value = str(screenshot_url).strip()
+        if not screenshot_value.startswith(("http://", "https://")):
+            return [SlotSet("return_value", "error")]
+
         order = create_order(
             session_id=tracker.sender_id,
             book_id=str(book_id),
             book_title=str(book_title),
             buyer_name=buyer_name,
-            screenshot_url=str(screenshot_url),
+            screenshot_url=screenshot_value,
             status=validation_status,
         )
 
+        order_id = getattr(order, "order_id", None) or str(uuid.uuid4())[:8].upper()
+
         dispatcher.utter_message(
             response="utter_order_created",
-            order_id=order.order_id,
+            order_id=order_id,
         )
 
         return [
-            SlotSet("order_id", order.order_id),
+            SlotSet("order_id", order_id),
             SlotSet("return_value", "success"),
         ]
