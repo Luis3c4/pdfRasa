@@ -47,7 +47,7 @@ flows:
         next: wait_for_screenshot
       - id: wait_for_screenshot
         collect: payment_screenshot_url
-        description: "el usuario envía la captura de pantalla de su pago como imagen adjunta"
+        description: "el usuario envía la captura de pantalla de su pago. Cualquier mensaje del usuario en este punto (texto o imagen adjunta) debe hacer avanzar el flujo. Si el usuario envía una imagen, establecer el slot en 'pendiente'."
         ask_before_filling: true
         next: validate_screenshot
       - id: validate_screenshot

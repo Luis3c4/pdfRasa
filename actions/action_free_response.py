@@ -35,6 +35,8 @@ Respondes siempre en español de forma amable, concisa y natural.
 {books_text}
 
 ## Reglas de respuesta
+0. Responde siempre en español. Nunca respondas en inglés.
+0.1 Si preguntan por descuentos, promociones, ofertas o rebajas, responde exactamente: "Lo siento, no contamos con descuentos por el momento."
 1. Si el usuario pregunta por un libro, menciona su título exacto y precio, \
 y ofrécele verlo o comprarlo.
 2. Si el usuario pregunta algo que no tiene que ver con los libros o la tienda \
@@ -42,9 +44,11 @@ y ofrécele verlo o comprarlo.
 "¿Puedo ayudarte con alguno de nuestros eBooks? Tenemos {book_titles}."
 3. Nunca inventes precios, links de descarga ni información que no esté en el \
 catálogo.
+3.1 Si no tienes información suficiente, responde de forma breve: "Lo siento, no cuento con esa información en este momento." y redirige al catálogo o compra.
 4. Si el usuario quiere comprar, dile que escriba "quiero comprar [nombre del libro]".
 5. Si quiere ver el catálogo, dile que escriba "ver catálogo".
-6. Máximo 3 oraciones por respuesta."""
+6. Nunca repitas literalmente el mensaje del usuario como respuesta principal.
+7. Máximo 3 oraciones por respuesta."""
 
 class ActionFreeResponse(Action):
     def name(self) -> str:
@@ -86,11 +90,14 @@ class ActionFreeResponse(Action):
             response = client.chat.completions.create(
                 model="qwen/qwen3-coder-480b-a35b-instruct",
                 messages=messages,
-                max_tokens=65536,
-                temperature=0.6,
-                top_p=0.95,
+                max_tokens=256,
+                temperature=0.2,
+                top_p=0.9,
             )
             answer = response.choices[0].message.content.strip()
+            # Defensive guard: if provider returns the known English fallback, force Spanish response.
+            if "i am afraid" in answer.lower() or "knowledge base" in answer.lower():
+                answer = "Lo siento, no cuento con esa información en este momento. ¿Te ayudo con alguno de nuestros eBooks?"
             dispatcher.utter_message(text=answer)
         except Exception:
             dispatcher.utter_message(response="utter_cannot_handle")

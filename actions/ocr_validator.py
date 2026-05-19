@@ -72,17 +72,16 @@ def _enhance_for_ocr(img: Image.Image) -> Image.Image:
 # ---------------------------------------------------------------------------
 
 def extract_text(image_url: str) -> str:
-    """Download image, pre-process, run EasyOCR and return joined text."""
-    try:
-        img = _download_image(image_url)
-        img = _enhance_for_ocr(img)
-        img_array = np.array(img)  # EasyOCR requires numpy array, not PIL Image
-        reader = _get_reader()
-        lines = reader.readtext(img_array, detail=0, paragraph=False)
-        return "\n".join(lines)
-    except Exception as exc:
-        logger.error("OCR extraction failed for %s: %s", image_url, exc)
-        return ""
+    """Download image, pre-process, run EasyOCR and return joined text.
+
+    Raises on any failure so callers can decide the fallback strategy.
+    """
+    img = _download_image(image_url)
+    img = _enhance_for_ocr(img)
+    img_array = np.array(img)  # EasyOCR requires numpy array, not PIL Image
+    reader = _get_reader()
+    lines = reader.readtext(img_array, detail=0, paragraph=False)
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -164,7 +163,22 @@ def validate_payment(
             "raw_text": str,
         }
     """
-    raw_text = extract_text(image_url)
+    try:
+        raw_text = extract_text(image_url)
+    except Exception as exc:
+        logger.error("OCR extraction failed for %s: %s", image_url, exc)
+        # Cannot run OCR — escalate to human review instead of rejecting the payment.
+        return {
+            "status": "needs_review",
+            "checks": {
+                "monto_correcto": False,
+                "numero_destino": False,
+                "pago_exitoso": False,
+                "fecha_hoy": False,
+            },
+            "data": {"monto": None, "fecha": None, "referencia": None},
+            "raw_text": "",
+        }
     lower_text = raw_text.lower()
     data = parse_yape_data(raw_text)
 

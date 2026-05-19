@@ -27,11 +27,18 @@ class ValidatePaymentScreenshotUrl(Action):
     async def run(
         self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[str, Any]
     ) -> List[Dict[Text, Any]]:
+        logger.info("=== validate_payment_screenshot_url START ===")
+        logger.info("tracker.latest_message: %s", tracker.latest_message)
+        
         metadata = tracker.latest_message.get("metadata", {})
+        logger.info("metadata extracted: %s", metadata)
+        
         image_url = self._extract_image_url(metadata)
+        logger.info("image_url extracted: %s", image_url)
 
         if not image_url:
             # No image found – return None so the collect step re-asks
+            logger.warning("No image URL found in metadata. Available keys: %s", list(metadata.keys()))
             return [
                 SlotSet("payment_screenshot_url", None),
                 SlotSet("payment_validation_status", None),
@@ -39,43 +46,62 @@ class ValidatePaymentScreenshotUrl(Action):
 
         # Run OCR in a thread pool — non-blocking, concurrent users are served in parallel
         expected_amount = self._get_expected_amount(tracker)
+        logger.info("expected_amount resolved to: %s", expected_amount)
+        
         try:
+            logger.info("Starting OCR validation for URL: %s", image_url)
             result = await validate_payment_async(
                 image_url=image_url,
                 expected_amount=expected_amount,
                 yape_number=YAPE_NUMBER,
             )
             validation_status = result["status"]
+            logger.info("OCR result: status=%s, checks=%s", validation_status, result.get("checks"))
         except Exception as exc:
-            logger.error("OCR validation error: %s", exc)
+            logger.error("OCR validation error: %s", exc, exc_info=True)
             validation_status = "needs_review"
 
+        logger.info("=== validate_payment_screenshot_url END: status=%s ===", validation_status)
         return [
             SlotSet("payment_screenshot_url", image_url),
             SlotSet("payment_validation_status", validation_status),
         ]
 
     def _extract_image_url(self, metadata: dict) -> str:
+        logger.info("Attempting to extract image URL from metadata keys: %s", list(metadata.keys()))
+        
         # Chatwoot Agent Bot connector (primary)
         attachments = metadata.get("attachments") or []
         if attachments:
+            logger.info("Found %d attachments, examining first one: %s", len(attachments), attachments[0])
             image_url = attachments[0].get("data_url") or attachments[0].get("url")
             if image_url:
+                logger.info("Extracted from attachments.data_url or .url: %s", image_url)
                 return image_url
 
         # Meta Business API (Cloud API)
         image_data = metadata.get("image", {})
-        image_url = image_data.get("link") or image_data.get("id")
-        if image_url:
-            return image_url
+        if image_data:
+            logger.info("Found 'image' key in metadata: %s", image_data)
+            image_url = image_data.get("link") or image_data.get("id")
+            if image_url:
+                logger.info("Extracted from image.link or .id: %s", image_url)
+                return image_url
 
         # Twilio WhatsApp connector
         image_url = metadata.get("MediaUrl0")
         if image_url:
+            logger.info("Extracted from MediaUrl0: %s", image_url)
             return image_url
 
         # Generic fallback
-        return metadata.get("image_url", "")
+        image_url = metadata.get("image_url", "")
+        if image_url:
+            logger.info("Extracted from generic image_url: %s", image_url)
+            return image_url
+        
+        logger.warning("No image URL found. Metadata structure: %s", metadata)
+        return ""
 
     def _get_expected_amount(self, tracker: Tracker) -> int:
         """Resolve expected payment amount from slots or catalog."""

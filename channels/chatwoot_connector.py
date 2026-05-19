@@ -1,6 +1,8 @@
 """Custom Rasa input/output channel for Chatwoot Agent Bot integration."""
+import asyncio
 import logging
 import os
+import time
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Text
 
 import aiohttp
@@ -10,6 +12,27 @@ from sanic.request import Request
 from sanic.response import HTTPResponse
 
 logger = logging.getLogger(__name__)
+
+# Simple in-memory dedup cache for webhook retries from Chatwoot.
+_SEEN_MESSAGE_IDS: Dict[str, float] = {}
+_SEEN_TTL_SECONDS = 600
+
+
+def _mark_message_seen(message_id: str) -> bool:
+    """Return True if message was seen recently, otherwise mark and return False."""
+    if not message_id:
+        return False
+
+    now = time.time()
+    expired = [mid for mid, ts in _SEEN_MESSAGE_IDS.items() if now - ts > _SEEN_TTL_SECONDS]
+    for mid in expired:
+        _SEEN_MESSAGE_IDS.pop(mid, None)
+
+    if message_id in _SEEN_MESSAGE_IDS:
+        return True
+
+    _SEEN_MESSAGE_IDS[message_id] = now
+    return False
 
 
 def _resolve_credential(value: Any, default: str) -> str:
@@ -54,9 +77,15 @@ class ChatwootOutput(OutputChannel):
         )
 
     async def _post(self, content: str) -> None:
+        logger.info("Sending message to Chatwoot conversation %s: %s", self.conversation_id, content)
         payload = {"content": content, "message_type": "outgoing", "private": False}
         async with aiohttp.ClientSession() as session:
             async with session.post(self._messages_url, json=payload, headers=self._headers) as resp:
+                logger.info(
+                    "Chatwoot response for conversation %s: status=%s",
+                    self.conversation_id,
+                    resp.status,
+                )
                 if resp.status not in (200, 201):
                     body = await resp.text()
                     logger.error(
@@ -127,6 +156,12 @@ class ChatwootInput(InputChannel):
             if event != "message_created" or message_type != "incoming":
                 return response.json({"status": "ignored"})
 
+            # Ignore duplicate deliveries from retries.
+            message_id = str(payload.get("id") or "")
+            if _mark_message_seen(message_id):
+                logger.info("Ignoring duplicated Chatwoot webhook message id=%s", message_id)
+                return response.json({"status": "ignored_duplicate"})
+
             content: str = (payload.get("content") or "").strip()
             conversation_id = str(payload.get("conversation", {}).get("id", ""))
             attachments: List[Dict] = payload.get("attachments") or []
@@ -142,9 +177,9 @@ class ChatwootInput(InputChannel):
             # Use conversation_id for session continuity across turns
             user_id = f"chatwoot_{conversation_id}"
 
-            # When user sends only an image, use a descriptive placeholder so the LLM
-            # understands the context and does not trigger pattern_cannot_handle
-            message_text = content if content else "imagen adjunta"
+            # When user sends only an image, use a phrase that strongly signals a
+            # payment screenshot so the LLM keeps the purchase flow active.
+            message_text = content if content else "captura de pago de yape para continuar la compra"
 
             output = ChatwootOutput(
                 url=self.url,
@@ -161,7 +196,14 @@ class ChatwootInput(InputChannel):
                 metadata={"attachments": attachments},
             )
 
-            await on_new_message(msg)
-            return response.json({"status": "ok"})
+            # Process asynchronously so webhook returns quickly and avoids provider retries.
+            async def _safe_process() -> None:
+                try:
+                    await on_new_message(msg)
+                except Exception:
+                    logger.exception("Error processing Chatwoot message id=%s", message_id)
+
+            asyncio.create_task(_safe_process())
+            return response.json({"status": "accepted"})
 
         return webhook

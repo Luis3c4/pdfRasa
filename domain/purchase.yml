@@ -11,6 +11,7 @@ slots:
   payment_screenshot_url:
     type: text
     mappings:
+      - type: from_llm
       - type: controlled
   payment_validation_status:
     type: text
@@ -29,12 +30,7 @@ responses:
   utter_book_purchase_preview:
     - text: "🔍 *Preview:* {book_preview}"
   utter_ask_purchase_confirmation:
-    - text: "Quieres comprar *{book_title}* por *{book_price}* ¿Es correcto?"
-      buttons:
-        - payload: "/SetSlots(purchase_confirmation=true)"
-          title: "Sí, confirmar"
-        - payload: "/SetSlots(purchase_confirmation=false)"
-          title: "No, cancelar"
+    - text: "Quieres comprar *{book_title}* por *{book_price}* ¿Es correcto? Responde solo: sí o no."
   utter_payment_instructions:
     - text: "💳 *Instrucciones de pago*\n\nRealiza tu pago por *Yape* al número:\n📱 *923252274*\n\nMonto: *{book_price}*\n📚 Libro: *{book_title}*\n\nUna vez realizado el pago, envíame la *captura de pantalla* de la transacción por aquí."
   utter_ask_payment_screenshot_url:
