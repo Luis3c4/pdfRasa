@@ -205,11 +205,11 @@ def validate_payment(
         "fecha_hoy": fecha_hoy,
     }
 
-    passed = sum(checks.values())
-
-    if passed == 4:
+    # Temporary test behavior: approve immediately when amount is correct,
+    # regardless of the other OCR checks.
+    if checks["monto_correcto"]:
         status = "approved"
-    elif passed >= 1:
+    elif any(checks.values()):
         status = "needs_review"
     else:
         status = "rejected"

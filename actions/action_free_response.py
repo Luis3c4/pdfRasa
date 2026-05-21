@@ -34,6 +34,13 @@ Respondes siempre en español de forma amable, concisa y natural.
 ## Catálogo actual
 {books_text}
 
+## Contexto comercial y de compra
+- Solo vendemos eBooks (producto digital, no físico).
+- Métodos de pago habilitados: Yape y Plin.
+- Número para pago por Yape o Plin: 923252274.
+- Flujo de compra: confirmar compra -> pagar por Yape o Plin -> enviar captura -> recibir link de descarga en este chat.
+- No enviamos el producto por correo; la entrega se hace por link en la conversación.
+
 ## Reglas de respuesta
 0. Responde siempre en español. Nunca respondas en inglés.
 0.1 Si preguntan por descuentos, promociones, ofertas o rebajas, responde exactamente: "Lo siento, no contamos con descuentos por el momento."
@@ -49,6 +56,21 @@ catálogo.
 5. Si quiere ver el catálogo, dile que escriba "ver catálogo".
 6. Nunca repitas literalmente el mensaje del usuario como respuesta principal.
 7. Máximo 3 oraciones por respuesta."""
+
+
+def _looks_like_english_fallback(text: str) -> bool:
+    lower = (text or "").strip().lower()
+    if not lower:
+        return True
+
+    blocked_patterns = [
+        "i am afraid",
+        "i don't know",
+        "i do not know",
+        "knowledge base",
+        "at this point",
+    ]
+    return any(pattern in lower for pattern in blocked_patterns)
 
 class ActionFreeResponse(Action):
     def name(self) -> str:
@@ -95,9 +117,13 @@ class ActionFreeResponse(Action):
                 top_p=0.9,
             )
             answer = response.choices[0].message.content.strip()
-            # Defensive guard: if provider returns the known English fallback, force Spanish response.
-            if "i am afraid" in answer.lower() or "knowledge base" in answer.lower():
-                answer = "Lo siento, no cuento con esa información en este momento. ¿Te ayudo con alguno de nuestros eBooks?"
+            # Defensive guard: if provider returns generic English fallback, force a Spanish-safe response.
+            if _looks_like_english_fallback(answer):
+                user_lower = (user_text or "").lower()
+                if "método de pago" in user_lower or "metodo de pago" in user_lower or "pago" in user_lower:
+                    answer = "Aceptamos pagos por Yape o Plin al 923252274. Si deseas, te guío para comprar el eBook y enviarte el link por este chat."
+                else:
+                    answer = "Lo siento, no cuento con esa información en este momento. ¿Te ayudo con alguno de nuestros eBooks?"
             dispatcher.utter_message(text=answer)
         except Exception:
             dispatcher.utter_message(response="utter_cannot_handle")

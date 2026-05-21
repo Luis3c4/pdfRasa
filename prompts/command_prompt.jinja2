@@ -54,7 +54,9 @@ RULES:
 8. The command for casual/off-topic messages is: offtopic reply (with double-f: o-f-f)
 9. If the user mentions buying, paying for, or getting the book with pronouns/reference words like "lo", "el libro", "ese", "comprarlo", "quiero comprarlo" or "lo quiero", always choose start flow comprar un ebook.
 10. If the store has only one product, never disambiguate between "ver detalles de un libro" and "comprar un ebook" on purchase-like messages; purchase wins.
-11. Use start flow ver detalles de un libro only when the user explicitly asks for info, preview, description, pages, or details.
+11. Use start flow ver detalles de un libro only when the user explicitly asks to see full details/preview of the book (e.g., "muéstrame el detalle", "dame la descripción completa", "quiero ver el preview").
+12. Questions like "qué métodos de pago aceptan", "cómo pago", "dónde pago", "es por yape" should be handled as offtopic reply (the free-response action will answer with store policy).
+13. Quick factual questions like "cuántas páginas son", "cuánto cuesta", "de qué trata", "aceptan plin" should be handled as offtopic reply so the assistant answers directly without starting a new sales flow.
 
 EXAMPLES (the output after → is what you must write, copy it exactly):
 User: "hola" → offtopic reply
@@ -65,8 +67,12 @@ User: "cómo estás" → offtopic reply
 User: "quiero ver los libros" → start flow ver catálogo
 User: "quiero comprar bitcoin" → start flow comprar un ebook
 User: "dame info del libro de recetas" → start flow ver detalles de un libro
+User: "cuántas páginas son" → offtopic reply
+User: "cuánto cuesta" → offtopic reply
+User: "de qué trata" → offtopic reply
 User: "quiero comprarlo" → start flow comprar un ebook
 User: "comprar el libro" → start flow comprar un ebook
 User: "lo quiero" → start flow comprar un ebook
+User: "qué métodos de pago aceptan" → offtopic reply
 
 Your action:

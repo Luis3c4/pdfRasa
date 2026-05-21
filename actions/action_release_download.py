@@ -1,10 +1,41 @@
 from typing import Any, Dict, List, Text
+from urllib.parse import parse_qs, urlparse
 
 from rasa_sdk import Action, Tracker
 from rasa_sdk.events import SlotSet
 from rasa_sdk.executor import CollectingDispatcher
 
 from actions.catalog import get_book_by_id
+
+
+def _to_direct_download_link(url: str) -> str:
+    """Convert supported Google Drive share URLs to direct download URLs."""
+    raw = (url or "").strip()
+    if not raw:
+        return raw
+
+    parsed = urlparse(raw)
+    if "drive.google.com" not in parsed.netloc:
+        return raw
+
+    file_id = ""
+    parts = [segment for segment in parsed.path.split("/") if segment]
+
+    # Example: /file/d/<FILE_ID>/view
+    if "d" in parts:
+        idx = parts.index("d")
+        if idx + 1 < len(parts):
+            file_id = parts[idx + 1]
+
+    # Example: /open?id=<FILE_ID>
+    if not file_id:
+        query = parse_qs(parsed.query)
+        file_id = (query.get("id") or [""])[0]
+
+    if not file_id:
+        return raw
+
+    return f"https://drive.google.com/uc?export=download&id={file_id}"
 
 
 class ActionReleaseDownload(Action):
@@ -25,11 +56,14 @@ class ActionReleaseDownload(Action):
             )
             return [SlotSet("return_value", "error")]
 
+        download_link = _to_direct_download_link(book.download_link)
+        file_name = f"{book.title}.pdf"
+
         dispatcher.utter_message(
             text=(
                 f"🎉 ¡Pago confirmado! Tu orden está lista.\n\n"
-                f"Aquí está tu link de descarga para *{book.title}*:\n\n"
-                f"🔗 {book.download_link}\n\n"
+                f"Aquí está tu archivo:\n\n"
+                f"⬇️ [{file_name}]({download_link})\n\n"
                 f"📦 Orden #{order_id}\n\n"
                 f"¡Disfruta tu lectura! Si tienes alguna duda, escríbenos. 😊"
             )

@@ -18,6 +18,10 @@ slots:
     type: text
     mappings:
       - type: controlled
+  last_validated_payment_message_id:
+    type: text
+    mappings:
+      - type: controlled
   order_id:
     type: text
     mappings:
@@ -31,9 +35,9 @@ responses:
   utter_book_purchase_preview:
     - text: "🔍 *Preview:* {book_preview}"
   utter_ask_purchase_confirmation:
-    - text: "Quieres comprar *{book_title}* por *{book_price}* ¿Es correcto? Responde solo: sí o no."
+    - text: "Quieres comprar *{book_title}* por *{book_price}* yape o plin ¿Es correcto? (si - no)"
   utter_payment_instructions:
-    - text: "💳 *Instrucciones de pago*\n\nRealiza tu pago por *Yape* al número:\n📱 *923252274*\n\nMonto: *{book_price}*\n📚 Libro: *{book_title}*\n\nUna vez realizado el pago, envíame la *captura de pantalla* de la transacción por aquí."
+    - text: "💳 *Instrucciones de pago*\n\nRealiza tu pago por *Yape o Plin* al número:\n📱 *923252274*\n\nMonto: *{book_price}*\n📚 Libro: *{book_title}*\n\nUna vez realizado el pago, envíame la *captura de pantalla* de la transacción por aquí."
   utter_ask_payment_screenshot_url:
     - text: "Por favor envía la captura de pantalla de tu pago por Yape. 📸"
   utter_order_created:
@@ -43,6 +47,6 @@ responses:
   utter_purchase_error:
     - text: "Algo salió mal al procesar tu orden. Por favor intenta nuevamente o escribe *hola* para comenzar."
   utter_payment_ocr_rejected:
-    - text: "No pude verificar tu captura de pago. 😕 Asegúrate de enviar la pantalla completa de confirmación de Yape (donde se vea el monto, el número destino y el estado 'Exitoso'). Por favor, envíala nuevamente. 📸"
+    - text: "No pude verificar tu captura de pago. 😕 Asegúrate de enviar la pantalla completa de confirmación de Yape o Plin (donde se vea el monto, el número destino y el estado 'Exitoso'). Por favor, envíala nuevamente. 📸"
   utter_payment_needs_review:
     - text: "✅ Recibí tu captura. Necesita una revisión manual por parte de nuestro equipo. Un agente la verificará en breve y te enviará el link de descarga por este mismo chat. ¡Gracias por tu paciencia! 🙏"

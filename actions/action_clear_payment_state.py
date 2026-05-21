@@ -15,5 +15,6 @@ class ActionClearPaymentState(Action):
         return [
             SlotSet("payment_screenshot_url", None),
             SlotSet("payment_validation_status", None),
+            SlotSet("last_validated_payment_message_id", None),
             SlotSet("order_id", None),
         ]

@@ -29,6 +29,9 @@ class ValidatePaymentScreenshotUrl(Action):
     ) -> List[Dict[Text, Any]]:
         logger.info("=== validate_payment_screenshot_url START ===")
         logger.info("tracker.latest_message: %s", tracker.latest_message)
+
+        current_message_id = str(tracker.latest_message.get("message_id") or "")
+        last_validated_message_id = str(tracker.get_slot("last_validated_payment_message_id") or "")
         
         metadata = tracker.latest_message.get("metadata", {})
         logger.info("metadata extracted: %s", metadata)
@@ -42,6 +45,23 @@ class ValidatePaymentScreenshotUrl(Action):
             return [
                 SlotSet("payment_screenshot_url", None),
                 SlotSet("payment_validation_status", None),
+            ]
+
+        # Prevent duplicate OCR work when provider retries or dialogue prediction retries
+        # replay the same user message.
+        if (
+            current_message_id
+            and last_validated_message_id
+            and current_message_id == last_validated_message_id
+            and tracker.get_slot("payment_validation_status") is not None
+        ):
+            logger.info(
+                "Skipping duplicate OCR run for repeated message_id=%s",
+                current_message_id,
+            )
+            return [
+                SlotSet("payment_screenshot_url", image_url),
+                SlotSet("payment_validation_status", tracker.get_slot("payment_validation_status")),
             ]
 
         # Run OCR in a thread pool — non-blocking, concurrent users are served in parallel
@@ -65,6 +85,7 @@ class ValidatePaymentScreenshotUrl(Action):
         return [
             SlotSet("payment_screenshot_url", image_url),
             SlotSet("payment_validation_status", validation_status),
+            SlotSet("last_validated_payment_message_id", current_message_id or None),
         ]
 
     def _extract_image_url(self, metadata: dict) -> str:

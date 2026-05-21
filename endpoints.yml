@@ -57,7 +57,7 @@ model_groups:
         api_base: https://integrate.api.nvidia.com/v1
         api_key: ${NVIDIA_API_KEY}
         drop_params: true
-        request_timeout: 45
+        request_timeout: 120
         temperature: 0.2
         top_p: 0.9
         max_tokens: 512

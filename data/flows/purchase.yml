@@ -1,6 +1,6 @@
 flows:
   purchase:
-    description: "comprar el único ebook disponible, realizar el pago por Yape y recibir el link de descarga directamente en este chat. En este catálogo solo se vende '200 recetas KETO', así que frases como 'quiero comprarlo', 'comprar el libro', 'lo quiero' o referencias como 'ese' apuntan a ese producto. El proceso es: el usuario confirma la compra, paga por Yape al número 923252274, envía la captura de pantalla del pago por este chat, y se le entrega el link de descarga aquí mismo en la conversación. No se envía nada por correo electrónico."
+    description: "comprar el único ebook disponible, realizar el pago por Yape o Plin y recibir el link de descarga directamente en este chat. En este catálogo solo se vende '200 recetas KETO', así que frases como 'quiero comprarlo', 'comprar el libro', 'lo quiero' o referencias como 'ese' apuntan a ese producto. El proceso es: el usuario confirma la compra, paga por Yape o Plin al número 923252274, envía la captura de pantalla del pago por este chat, y se le entrega el link de descarga aquí mismo en la conversación. No se envía nada por correo electrónico."
     name: comprar un ebook
     steps:
       - action: action_resolve_book
