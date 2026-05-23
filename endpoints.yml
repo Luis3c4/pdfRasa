@@ -58,9 +58,8 @@ model_groups:
         api_key: ${NVIDIA_API_KEY}
         drop_params: true
         request_timeout: 120
-        temperature: 0.2
-        top_p: 0.9
-        max_tokens: 512
+        temperature: 0.0
+        max_tokens: 64
   - id: local_llm
     models:
       - provider: openai

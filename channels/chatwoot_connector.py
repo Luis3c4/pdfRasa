@@ -177,9 +177,19 @@ class ChatwootInput(InputChannel):
             # Use conversation_id for session continuity across turns
             user_id = f"chatwoot_{conversation_id}"
 
-            # When user sends only an image, use a phrase that strongly signals a
-            # payment screenshot so the LLM keeps the purchase flow active.
-            message_text = content if content else "captura de pago de yape para continuar la compra"
+            # When user sends only an image, extract the image URL and use it as the
+            # message text so the LLM can fill payment_screenshot_url directly without
+            # accidentally re-triggering the purchase flow from its description.
+            if content:
+                message_text = content
+            else:
+                _image_url = ""
+                for _att in (attachments or []):
+                    _url = _att.get("data_url") or _att.get("url") or ""
+                    if _url:
+                        _image_url = _url
+                        break
+                message_text = _image_url or "imagen adjunta"
 
             output = ChatwootOutput(
                 url=self.url,

@@ -12,9 +12,12 @@ class ActionClearPaymentState(Action):
     def run(
         self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[str, Any]
     ) -> List[Dict[Text, Any]]:
+        # NOTE: last_validated_payment_message_id is intentionally NOT cleared.
+        # Keeping it allows the dedup guard in validate_payment_screenshot_url to
+        # detect when the same image is being processed again (within-turn loop or
+        # Chatwoot webhook retry) and return null instead of running OCR again.
         return [
             SlotSet("payment_screenshot_url", None),
             SlotSet("payment_validation_status", None),
-            SlotSet("last_validated_payment_message_id", None),
             SlotSet("order_id", None),
         ]

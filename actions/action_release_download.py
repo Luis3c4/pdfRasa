@@ -57,15 +57,13 @@ class ActionReleaseDownload(Action):
             return [SlotSet("return_value", "error")]
 
         download_link = _to_direct_download_link(book.download_link)
-        file_name = f"{book.title}.pdf"
 
         dispatcher.utter_message(
             text=(
                 f"🎉 ¡Pago confirmado! Tu orden está lista.\n\n"
-                f"Aquí está tu archivo:\n\n"
-                f"⬇️ [{file_name}]({download_link})\n\n"
+                f"⬇️ {download_link}\n\n"
                 f"📦 Orden #{order_id}\n\n"
-                f"¡Disfruta tu lectura! Si tienes alguna duda, escríbenos. 😊"
+                f"¡Disfruta tu lectura! 😊"
             )
         )
 

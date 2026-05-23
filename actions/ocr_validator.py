@@ -200,18 +200,26 @@ def validate_payment(
         "numero_destino": bool(re.search(r'\b' + re.escape(yape_number[-3:]) + r'\b', raw_text)),
         "pago_exitoso": any(
             keyword in lower_text
-            for keyword in ["exitoso", "enviaste", "transferencia realizada", "pago realizado", "completado", "yapeaste"]
+            for keyword in ["exitosa", "enviaste", "transferencia realizada", "pago realizado", "completado", "yapeaste"]
         ),
         "fecha_hoy": fecha_hoy,
     }
 
-    # Temporary test behavior: approve immediately when amount is correct,
-    # regardless of the other OCR checks.
-    if checks["monto_correcto"]:
+    # Approval requires both the correct amount AND a success keyword.
+    # If the amount is wrong → rejected immediately.
+    # If the amount is correct but success keyword is missing → needs_review
+    # (partial screenshot or OCR missed the keyword).
+    # If the amount could not be read → needs_review (can't confirm).
+    if checks["monto_correcto"] and checks["pago_exitoso"]:
         status = "approved"
-    elif any(checks.values()):
+    elif checks["monto_correcto"]:
+        # Amount matches but couldn't confirm "exitoso" — escalate to human.
+        status = "needs_review"
+    elif data["monto"] is None and any(checks.values()):
+        # OCR couldn't parse the amount at all but other signals present.
         status = "needs_review"
     else:
+        # Amount was readable and it's wrong — reject.
         status = "rejected"
 
     logger.info(

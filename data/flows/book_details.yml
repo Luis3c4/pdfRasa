@@ -50,7 +50,7 @@ flows:
       - id: wait_for_screenshot
         collect: payment_screenshot_url
         description: "el usuario envía la captura de pantalla de su pago como imagen adjunta"
-        ask_before_filling: true
+        ask_before_filling: false
         next: validate_screenshot
       - id: validate_screenshot
         action: validate_payment_screenshot_url
@@ -75,6 +75,9 @@ flows:
         next: END
       - id: ocr_rejected
         action: utter_payment_ocr_rejected
+        next: clear_for_retry
+      - id: clear_for_retry
+        action: action_clear_payment_state
         next: wait_for_screenshot
       - id: create_order_pending
         action: action_create_order

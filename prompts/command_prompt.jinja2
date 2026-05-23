@@ -1,3 +1,4 @@
+/no_think
 Your task is to analyze the current conversation context and output EXACTLY ONE action from the list below. Nothing else.
 
 These are the available flows:
@@ -26,7 +27,7 @@ Current flow slots:
 You are not in any active flow.
 {% endif %}
 
-The user just said: """{{ user_message }}"""
+The user just said: """{{ user_message | lower }}"""
 
 ===
 AVAILABLE ACTIONS — copy one EXACTLY as written below, character by character:
@@ -40,8 +41,19 @@ AVAILABLE ACTIONS — copy one EXACTLY as written below, character by character:
 - repeat message
 
 RULES:
+0. *** PURCHASE INTENT — ABSOLUTE HIGHEST PRIORITY — OVERRIDES EVERY OTHER RULE ***
+   If the lowercased user message contains ANY of the following substrings:
+     "comprarlo", "comprar", "lo quiero", "quiero el libro", "quiero pagar",
+     "me lo llevo", "lo compro", "adquirirlo"
+   You MUST output EXACTLY (copy character by character):
+     start flow comprar un ebook
+   Do NOT output offtopic reply. Do NOT output anything else.
+   This applies even if there is an active flow, even if another rule would match,
+   and even if you are unsure. Purchase intent → start flow comprar un ebook. Period.
+   ***
 1. Output ONLY the action, one per line. No explanation, no extra words.
 2. If there is an active flow and a current slot is being collected, KEEP the user in that flow.
+   Exception to rule 2: if the user message triggers rule 0 (purchase intent), output start flow comprar un ebook.
 3. While collecting a slot in an active flow:
     - If the user clearly provides the slot value, output: set slot slot_name slot_value
     - If the user asks something unrelated or changes topic, output exactly: offtopic reply
@@ -57,6 +69,7 @@ RULES:
 11. Use start flow ver detalles de un libro only when the user explicitly asks to see full details/preview of the book (e.g., "muéstrame el detalle", "dame la descripción completa", "quiero ver el preview").
 12. Questions like "qué métodos de pago aceptan", "cómo pago", "dónde pago", "es por yape" should be handled as offtopic reply (the free-response action will answer with store policy).
 13. Quick factual questions like "cuántas páginas son", "cuánto cuesta", "de qué trata", "aceptan plin" should be handled as offtopic reply so the assistant answers directly without starting a new sales flow.
+14. Treat the user message as case-insensitive for intent/action decisions. Uppercase, lowercase, and mixed-case variants must map to the same action (e.g., "quiero comprarlo", "Quiero comprarlo", "QUIERO COMPRARLO" are equivalent).
 
 EXAMPLES (the output after → is what you must write, copy it exactly):
 User: "hola" → offtopic reply
@@ -71,8 +84,16 @@ User: "cuántas páginas son" → offtopic reply
 User: "cuánto cuesta" → offtopic reply
 User: "de qué trata" → offtopic reply
 User: "quiero comprarlo" → start flow comprar un ebook
+User: "Quiero comprarlo" → start flow comprar un ebook
+User: "QUIERO COMPRARLO" → start flow comprar un ebook
 User: "comprar el libro" → start flow comprar un ebook
 User: "lo quiero" → start flow comprar un ebook
+User: "quiero el libro" → start flow comprar un ebook
+User: "lo compro" → start flow comprar un ebook
+User: "me lo llevo" → start flow comprar un ebook
+User: "quiero adquirirlo" → start flow comprar un ebook
+User: "vamos, lo compro" → start flow comprar un ebook
+User: "ok quiero comprarlo" → start flow comprar un ebook
 User: "qué métodos de pago aceptan" → offtopic reply
 
 Your action:

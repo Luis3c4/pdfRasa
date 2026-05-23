@@ -47,21 +47,22 @@ class ValidatePaymentScreenshotUrl(Action):
                 SlotSet("payment_validation_status", None),
             ]
 
-        # Prevent duplicate OCR work when provider retries or dialogue prediction retries
-        # replay the same user message.
+        # Dedup guard: same message_id has already been validated in this conversation.
+        # Returning url=null sends the flow through the "null" branch of validate_screenshot
+        # (back to wait_for_screenshot) WITHOUT sending another rejection message,
+        # breaking both within-turn and cross-turn (Chatwoot retry) loops.
         if (
             current_message_id
             and last_validated_message_id
             and current_message_id == last_validated_message_id
-            and tracker.get_slot("payment_validation_status") is not None
         ):
             logger.info(
-                "Skipping duplicate OCR run for repeated message_id=%s",
+                "Dedup: message_id=%s already validated — returning null to break loop",
                 current_message_id,
             )
             return [
-                SlotSet("payment_screenshot_url", image_url),
-                SlotSet("payment_validation_status", tracker.get_slot("payment_validation_status")),
+                SlotSet("payment_screenshot_url", None),
+                SlotSet("payment_validation_status", None),
             ]
 
         # Run OCR in a thread pool — non-blocking, concurrent users are served in parallel
@@ -77,6 +78,28 @@ class ValidatePaymentScreenshotUrl(Action):
             )
             validation_status = result["status"]
             logger.info("OCR result: status=%s, checks=%s", validation_status, result.get("checks"))
+
+            # Dispatch a specific rejection message so the customer knows exactly why
+            # their screenshot was rejected (wrong amount vs. unreadable).
+            if validation_status == "rejected":
+                detected_monto = result["data"].get("monto")
+                if detected_monto is not None:
+                    dispatcher.utter_message(
+                        text=(
+                            f"⚠️ El monto detectado en tu captura (S/ {detected_monto:.2f}) "
+                            f"no coincide con el precio del libro (S/ {expected_amount:.2f}). "
+                            f"Asegúrate de pagar el monto exacto e intenta nuevamente."
+                        )
+                    )
+                else:
+                    dispatcher.utter_message(
+                        text=(
+                            "⚠️ No pude leer el monto en tu captura. "
+                            "Asegúrate de enviar la pantalla completa de Yape o Plin "
+                            "donde se vea claramente el monto, el número destino y el estado 'Exitoso'."
+                        )
+                    )
+
         except Exception as exc:
             logger.error("OCR validation error: %s", exc, exc_info=True)
             validation_status = "needs_review"
