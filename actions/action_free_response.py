@@ -52,6 +52,42 @@ def _is_purchase_intent(text: str) -> bool:
     return any(token in lower for token in purchase_tokens)
 
 
+def _is_affirmative(text: str) -> bool:
+    lower = _normalize(text)
+    if not lower:
+        return False
+
+    affirmative_tokens = (
+        "si",
+        "sí",
+        "yes",
+        "ok",
+        "dale",
+        "correcto",
+        "confirmo",
+        "acepto",
+        "proceder",
+        "vamos",
+    )
+    return lower in affirmative_tokens
+
+
+def _is_negative(text: str) -> bool:
+    lower = _normalize(text)
+    if not lower:
+        return False
+
+    negative_tokens = (
+        "no",
+        "cancelar",
+        "no quiero",
+        "mejor no",
+        "detener",
+        "stop",
+    )
+    return lower in negative_tokens
+
+
 def _get_default_book_data() -> Dict[str, str] | None:
     """Return first catalog item data for deterministic purchase fallback replies."""
     try:
@@ -164,6 +200,33 @@ class ActionFreeResponse(Action):
             )
             dispatcher.utter_message(response="utter_ask_purchase_confirmation")
             return []
+
+        # Safety net: if yes/no confirmation is misrouted to free response,
+        # continue with the deterministic purchase branch instead of falling
+        # back to cannot-handle.
+        if _was_asking_purchase_confirmation(tracker):
+            book = _get_default_book_data() or {}
+            book_title = tracker.get_slot("book_title") or book.get("book_title") or "200 recetas KETO"
+            book_price = tracker.get_slot("book_price") or book.get("book_price") or "S/ 7"
+
+            if _is_affirmative(user_text):
+                dispatcher.utter_message(
+                    text=(
+                        "💳 *Instrucciones de pago*\n\n"
+                        "Realiza tu pago por *Yape o Plin* al número:\n"
+                        "📱 *923252274*\n\n"
+                        f"Monto: *{book_price}*\n"
+                        f"📚 Libro: *{book_title}*\n\n"
+                        "Una vez realizado el pago, envíame la *captura de pantalla* de la transacción por aquí."
+                    )
+                )
+                return [SlotSet("purchase_confirmation", True)]
+
+            if _is_negative(user_text):
+                dispatcher.utter_message(
+                    text="✋ Entendido, cancelé la compra. Si cambias de idea, ¡aquí estaré!"
+                )
+                return [SlotSet("purchase_confirmation", False)]
 
         # Safety net: if the command generator misroutes a purchase intent to
         # free response, show the same purchase confirmation prompt expected by

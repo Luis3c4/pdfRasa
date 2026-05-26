@@ -193,15 +193,16 @@ def validate_payment(
         and today_year in data["fecha"]
     )
 
+    success_pattern = re.compile(
+        r"\bexitos[oa]\b|\benviaste\b|\btransferencia\s+realizada\b|\bpago\s+realizado\b|\bcompletad[oa]\b|\byapeaste\b|\bplineaste\b"
+    )
+
     checks = {
         "monto_correcto": data["monto"] is not None and abs(data["monto"] - float(expected_amount)) < 0.05,
         # Yape always masks the destination number, showing only the last 3 digits
         # (e.g. "*** *** 963"). Checking those 3 digits is sufficient.
         "numero_destino": bool(re.search(r'\b' + re.escape(yape_number[-3:]) + r'\b', raw_text)),
-        "pago_exitoso": any(
-            keyword in lower_text
-            for keyword in ["exitosa", "enviaste", "transferencia realizada", "pago realizado", "completado", "yapeaste"]
-        ),
+        "pago_exitoso": bool(success_pattern.search(lower_text)),
         "fecha_hoy": fecha_hoy,
     }
 

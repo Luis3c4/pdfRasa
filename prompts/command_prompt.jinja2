@@ -32,7 +32,7 @@ The user just said: """{{ user_message | lower }}"""
 ===
 AVAILABLE ACTIONS — copy one EXACTLY as written below, character by character:
 - set slot slot_name slot_value
-- start flow flow_name          ← only use flow names listed above
+- start flow flow_id            ← use the flow ID, not the human-readable name; valid IDs here are: purchase, book_details, browse_catalog
 - cancel flow
 - disambiguate flows flow1 flow2
 - provide info                  ← for factual/knowledge questions not covered by a flow
@@ -41,19 +41,31 @@ AVAILABLE ACTIONS — copy one EXACTLY as written below, character by character:
 - repeat message
 
 RULES:
+0A. *** SLOT PURCHASE_CONFIRMATION — PRIORIDAD CUANDO ESTÁ ACTIVO ***
+   Si current_slot es "purchase_confirmation":
+   - Si el mensaje del usuario (lowercased) es afirmativo ("si", "sí", "yes", "ok", "dale", "correcto", "confirmo", "acepto", "proceder", "vamos"),
+     debes responder EXACTAMENTE:
+       set slot purchase_confirmation true
+   - Si el mensaje es negativo ("no", "cancelar", "no quiero", "mejor no", "detener", "stop"),
+     debes responder EXACTAMENTE:
+       set slot purchase_confirmation false
+   - Si no es claramente afirmativo/negativo, responde EXACTAMENTE:
+       repeat message
+   Nunca uses "offtopic reply" para "si/no" cuando current_slot sea purchase_confirmation.
+   ***
 0. *** PURCHASE INTENT — ABSOLUTE HIGHEST PRIORITY — OVERRIDES EVERY OTHER RULE ***
    If the lowercased user message contains ANY of the following substrings:
      "comprarlo", "comprar", "lo quiero", "quiero el libro", "quiero pagar",
      "me lo llevo", "lo compro", "adquirirlo"
    You MUST output EXACTLY (copy character by character):
-     start flow comprar un ebook
+     start flow purchase
    Do NOT output offtopic reply. Do NOT output anything else.
    This applies even if there is an active flow, even if another rule would match,
-   and even if you are unsure. Purchase intent → start flow comprar un ebook. Period.
+   and even if you are unsure. Purchase intent → start flow purchase. Period.
    ***
 1. Output ONLY the action, one per line. No explanation, no extra words.
 2. If there is an active flow and a current slot is being collected, KEEP the user in that flow.
-   Exception to rule 2: if the user message triggers rule 0 (purchase intent), output start flow comprar un ebook.
+   Exception to rule 2: if the user message triggers rule 0 (purchase intent), output start flow purchase.
 3. While collecting a slot in an active flow:
     - If the user clearly provides the slot value, output: set slot slot_name slot_value
     - If the user asks something unrelated or changes topic, output exactly: offtopic reply
@@ -61,14 +73,14 @@ RULES:
     - Only output cancel flow if the user explicitly asks to cancel, stop, or abort.
 4. Do NOT use provide info for these conversational off-topic questions; prefer offtopic reply.
 5. If unsure whether to start a flow (and there is no active flow) → output exactly: offtopic reply
-6. NEVER invent flow names. Only use names from the list above.
+6. NEVER invent flow IDs. Only use these IDs when relevant: purchase, book_details, browse_catalog.
 7. NEVER output free text or descriptions as actions.
 8. The command for casual/off-topic messages is: offtopic reply (with double-f: o-f-f)
-9. If the user mentions buying, paying for, or getting the book with pronouns/reference words like "lo", "el libro", "ese", "comprarlo", "quiero comprarlo" or "lo quiero", always choose start flow comprar un ebook.
-10. If the store has only one product, never disambiguate between "ver detalles de un libro" and "comprar un ebook" on purchase-like messages; purchase wins.
-11. Use start flow ver detalles de un libro only when the user explicitly asks to see full details/preview of the book (e.g., "muéstrame el detalle", "dame la descripción completa", "quiero ver el preview").
-12. Questions like "qué métodos de pago aceptan", "cómo pago", "dónde pago", "es por yape" should be handled as offtopic reply (the free-response action will answer with store policy).
-13. Quick factual questions like "cuántas páginas son", "cuánto cuesta", "de qué trata", "aceptan plin" should be handled as offtopic reply so the assistant answers directly without starting a new sales flow.
+9. If the user mentions buying, paying for, or getting the book with pronouns/reference words like "lo", "el libro", "ese", "comprarlo", "quiero comprarlo" or "lo quiero", always choose start flow purchase.
+10. If the store has only one product, never disambiguate between `book_details` and `purchase` on purchase-like messages; purchase wins.
+11. Use start flow book_details only when the user explicitly asks to see full details/preview of the book (e.g., "muéstrame el detalle", "dame la descripción completa", "quiero ver el preview").
+12. If there is NO active flow, questions like "qué métodos de pago aceptan", "cómo pago", "dónde pago", "es por yape" should be handled as offtopic reply (the free-response action will answer with store policy).
+13. If there is NO active flow, quick factual questions like "cuántas páginas son", "cuánto cuesta", "de qué trata", "aceptan plin" should be handled as offtopic reply so the assistant answers directly without starting a new sales flow.
 14. Treat the user message as case-insensitive for intent/action decisions. Uppercase, lowercase, and mixed-case variants must map to the same action (e.g., "quiero comprarlo", "Quiero comprarlo", "QUIERO COMPRARLO" are equivalent).
 
 EXAMPLES (the output after → is what you must write, copy it exactly):
@@ -77,23 +89,25 @@ User: "qué hora es" → offtopic reply
 User: "qué es un ebook" → offtopic reply
 User: "cuéntame un chiste" → offtopic reply
 User: "cómo estás" → offtopic reply
-User: "quiero ver los libros" → start flow ver catálogo
-User: "quiero comprar bitcoin" → start flow comprar un ebook
-User: "dame info del libro de recetas" → start flow ver detalles de un libro
+User: "quiero ver los libros" → start flow browse_catalog
+User: "quiero comprar bitcoin" → start flow purchase
+User: "dame info del libro de recetas" → start flow book_details
 User: "cuántas páginas son" → offtopic reply
 User: "cuánto cuesta" → offtopic reply
 User: "de qué trata" → offtopic reply
-User: "quiero comprarlo" → start flow comprar un ebook
-User: "Quiero comprarlo" → start flow comprar un ebook
-User: "QUIERO COMPRARLO" → start flow comprar un ebook
-User: "comprar el libro" → start flow comprar un ebook
-User: "lo quiero" → start flow comprar un ebook
-User: "quiero el libro" → start flow comprar un ebook
-User: "lo compro" → start flow comprar un ebook
-User: "me lo llevo" → start flow comprar un ebook
-User: "quiero adquirirlo" → start flow comprar un ebook
-User: "vamos, lo compro" → start flow comprar un ebook
-User: "ok quiero comprarlo" → start flow comprar un ebook
+User: "quiero comprarlo" → start flow purchase
+User: "Quiero comprarlo" → start flow purchase
+User: "QUIERO COMPRARLO" → start flow purchase
+User: "comprar el libro" → start flow purchase
+User: "lo quiero" → start flow purchase
+User: "quiero el libro" → start flow purchase
+User: "lo compro" → start flow purchase
+User: "me lo llevo" → start flow purchase
+User: "quiero adquirirlo" → start flow purchase
+User: "vamos, lo compro" → start flow purchase
+User: "ok quiero comprarlo" → start flow purchase
 User: "qué métodos de pago aceptan" → offtopic reply
+User (current_slot=purchase_confirmation): "si" → set slot purchase_confirmation true
+User (current_slot=purchase_confirmation): "no" → set slot purchase_confirmation false
 
 Your action:

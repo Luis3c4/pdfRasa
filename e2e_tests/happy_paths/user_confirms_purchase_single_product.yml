@@ -1,0 +1,14 @@
+test_cases:
+  - test_case: user confirms purchase for the single ebook
+    steps:
+      - user: quiero comprarlo
+      - slot_was_set:
+          - book_title: "200 recetas KETO"
+          - book_price: "S/ 7"
+          - return_value: success
+      - utter: utter_book_purchase_preview
+      - utter: utter_ask_purchase_confirmation
+      - user: si
+      - slot_was_set:
+          - purchase_confirmation: true
+      - utter: utter_payment_instructions

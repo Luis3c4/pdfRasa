@@ -32,6 +32,8 @@ class ValidatePaymentScreenshotUrl(Action):
 
         current_message_id = str(tracker.latest_message.get("message_id") or "")
         last_validated_message_id = str(tracker.get_slot("last_validated_payment_message_id") or "")
+        current_status = tracker.get_slot("payment_validation_status")
+        current_screenshot_url = tracker.get_slot("payment_screenshot_url")
         
         metadata = tracker.latest_message.get("metadata", {})
         logger.info("metadata extracted: %s", metadata)
@@ -48,16 +50,27 @@ class ValidatePaymentScreenshotUrl(Action):
             ]
 
         # Dedup guard: same message_id has already been validated in this conversation.
-        # Returning url=null sends the flow through the "null" branch of validate_screenshot
-        # (back to wait_for_screenshot) WITHOUT sending another rejection message,
-        # breaking both within-turn and cross-turn (Chatwoot retry) loops.
+        # If we already have a validation result for this message, reuse it so the
+        # flow can continue without re-running OCR or looping back to ask screenshot.
         if (
             current_message_id
             and last_validated_message_id
             and current_message_id == last_validated_message_id
         ):
+            if current_status in {"approved", "needs_review", "rejected"} and current_screenshot_url:
+                logger.info(
+                    "Dedup: message_id=%s already validated with status=%s — reusing previous result",
+                    current_message_id,
+                    current_status,
+                )
+                return [
+                    SlotSet("payment_screenshot_url", current_screenshot_url),
+                    SlotSet("payment_validation_status", current_status),
+                    SlotSet("last_validated_payment_message_id", current_message_id),
+                ]
+
             logger.info(
-                "Dedup: message_id=%s already validated — returning null to break loop",
+                "Dedup: message_id=%s already seen without reusable result — returning null",
                 current_message_id,
             )
             return [
