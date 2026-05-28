@@ -5,6 +5,7 @@ actions:
   - action_release_download
   - action_reset_purchase_slots
   - action_clear_payment_state
+  - action_normalize_purchase_confirmation
   - action_escalate_to_human
   - validate_payment_screenshot_url
 
@@ -12,7 +13,9 @@ slots:
   payment_screenshot_url:
     type: text
     mappings:
-      - type: from_llm
+      - type: from_text
+        conditions:
+          - active_flow: purchase
       - type: controlled
   payment_validation_status:
     type: text
@@ -29,7 +32,16 @@ slots:
   purchase_confirmation:
     type: bool
     mappings:
-      - type: from_llm
+      - type: from_intent
+        intent: affirm
+        value: true
+      - type: from_intent
+        intent: deny
+        value: false
+      - type: from_intent
+        intent: stop
+        value: false
+      - type: controlled
 
 responses:
   utter_book_purchase_preview:

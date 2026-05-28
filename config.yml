@@ -2,17 +2,17 @@ recipe: default.v1
 assistant_id: ferocious-parameter
 language: es
 pipeline:
-- name: CompactLLMCommandGenerator
-  prompt_template: "prompts/command_prompt.jinja2"
-  llm:  
-    model_group: self_hosted_llm
-  flow_retrieval:
-    embeddings:
-      model_group: openai-embeddings
+- name: WhitespaceTokenizer
+- name: RegexFeaturizer
+- name: CountVectorsFeaturizer
+- name: CountVectorsFeaturizer
+  analyzer: char_wb
+  min_ngram: 3
+  max_ngram: 5
+- name: LogisticRegressionClassifier
+- name: FallbackClassifier
+  threshold: 0.75
+  ambiguity_threshold: 0.10
+- name: NLUCommandAdapter
 policies:
 - name: FlowPolicy
-- name: IntentlessPolicy
-  llm:
-    model_group: self_hosted_llm
-  embeddings:
-    model_group: openai-embeddings

@@ -2,6 +2,8 @@ flows:
   purchase:
     description: "comprar el único ebook disponible, realizar el pago por Yape o Plin y recibir el link de descarga directamente en este chat. En este catálogo solo se vende '200 recetas KETO', así que frases como 'quiero comprarlo', 'comprar el libro', 'lo quiero' o referencias como 'ese' apuntan a ese producto. El proceso es: el usuario confirma la compra, paga por Yape o Plin al número 923252274, envía la captura de pantalla del pago por este chat, y se le entrega el link de descarga aquí mismo en la conversación. No se envía nada por correo electrónico."
     name: comprar un ebook
+    nlu_trigger:
+      - intent: buy_book
     steps:
       - action: action_resolve_book
         next: get_book_for_purchase
@@ -24,16 +26,23 @@ flows:
         description: "Confirma si el usuario quiere proceder con la compra. Establece true si el usuario dice: sí, si, yes, confirmo, quiero, acepto, correcto, ok, dale, vamos, proceder. Establece false si dice: no, cancelar, no quiero, mejor no."
         ask_before_filling: true
         rejections:
-          - if: "slots.purchase_confirmation is null"
+          - if: "slots.purchase_confirmation is not true and slots.purchase_confirmation is not false"
             utter: utter_ask_purchase_confirmation
+        next: normalize_purchase_confirmation
+      - id: normalize_purchase_confirmation
+        action: action_normalize_purchase_confirmation
         next:
-          - if: "slots.purchase_confirmation is not true"
+          - if: "slots.purchase_confirmation is false"
             then:
               - action: utter_purchase_cancelled
                 next: reset_slots
-          - else:
+          - if: "slots.purchase_confirmation is true"
+            then:
               - action: action_clear_payment_state
                 next: show_payment_instructions
+          - else:
+              - action: utter_ask_purchase_confirmation
+                next: confirm_purchase
       - id: reset_slots
         action: action_reset_purchase_slots
         next: END

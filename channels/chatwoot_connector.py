@@ -35,6 +35,17 @@ def _mark_message_seen(message_id: str) -> bool:
     return False
 
 
+def _build_dedup_key(account_id: str, conversation_id: str, message_id: str) -> str:
+    """Build a stable dedup key scoped to the conversation.
+
+    Chatwoot payload ids can collide across different conversations, so keying by
+    message id only may incorrectly drop valid messages from other chats.
+    """
+    if not message_id:
+        return ""
+    return f"{account_id}:{conversation_id}:{message_id}"
+
+
 def _resolve_credential(value: Any, default: str) -> str:
     if value is None:
         return default
@@ -156,14 +167,20 @@ class ChatwootInput(InputChannel):
             if event != "message_created" or message_type != "incoming":
                 return response.json({"status": "ignored"})
 
-            # Ignore duplicate deliveries from retries.
+            conversation_id = str(payload.get("conversation", {}).get("id", ""))
+
+            # Ignore duplicate deliveries from retries, scoped by conversation.
             message_id = str(payload.get("id") or "")
-            if _mark_message_seen(message_id):
-                logger.info("Ignoring duplicated Chatwoot webhook message id=%s", message_id)
+            dedup_key = _build_dedup_key(self.account_id, conversation_id, message_id)
+            if _mark_message_seen(dedup_key):
+                logger.info(
+                    "Ignoring duplicated Chatwoot webhook message id=%s conversation_id=%s",
+                    message_id,
+                    conversation_id,
+                )
                 return response.json({"status": "ignored_duplicate"})
 
             content: str = (payload.get("content") or "").strip()
-            conversation_id = str(payload.get("conversation", {}).get("id", ""))
             attachments: List[Dict] = payload.get("attachments") or []
 
             # Skip bot's own echoed messages

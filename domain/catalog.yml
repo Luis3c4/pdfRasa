@@ -9,7 +9,7 @@ slots:
   selected_book_id:
     type: text
     mappings:
-      - type: from_llm
+      - type: controlled
   book_title:
     type: text
     mappings:

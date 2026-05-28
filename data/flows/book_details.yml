@@ -2,6 +2,8 @@ flows:
   book_details:
     description: "muestra información detallada del único ebook disponible. En este catálogo solo existe '200 recetas KETO'. Se activa cuando el usuario pide ver el detalle completo o el preview del libro, o cuando solicita explícitamente una vista detallada del producto. No se usa para preguntas rápidas de FAQ (por ejemplo: páginas, precio, método de pago); esas deben resolverse con respuesta libre (offtopic reply). No se usa para mensajes de compra como 'quiero comprarlo', 'comprarlo' o 'lo quiero'; para eso usar el flow 'comprar un ebook'. No se activa para ver el catálogo completo. No existe ningún flow llamado 'provide_info'; usar este flow para solicitudes de detalle completo del libro."
     name: ver detalles de un libro
+    nlu_trigger:
+      - intent: ask_book_details
     steps:
       - action: action_resolve_book
         next:
@@ -31,10 +33,10 @@ flows:
         description: "Confirma si el usuario quiere proceder con la compra. Establece true si el usuario dice: sí, si, yes, confirmo, quiero, acepto, correcto, ok, dale, vamos, proceder. Establece false si dice: no, cancelar, no quiero, mejor no."
         ask_before_filling: true
         rejections:
-          - if: "slots.purchase_confirmation is null"
-            utter: utter_ask_purchase_confirmation
+          - if: "slots.purchase_confirmation is not true and slots.purchase_confirmation is not false"
+            utter: action_free_response
         next:
-          - if: "slots.purchase_confirmation is not true"
+          - if: "slots.purchase_confirmation is false"
             then:
               - action: utter_purchase_cancelled
                 next: reset_slots

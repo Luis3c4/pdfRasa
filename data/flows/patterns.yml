@@ -2,6 +2,8 @@ flows:
   greeting:
     description: "el usuario saluda o inicia la conversación. Frases como: hola, buenos días, buenas tardes, buenas noches, hi, hey, qué tal, buen día"
     name: saludo
+    nlu_trigger:
+      - intent: greet
     steps:
       - action: utter_greet
         next: show_catalog
@@ -10,20 +12,19 @@ flows:
         next: END
 
   pattern_cannot_handle:
-    description: "el bot no puede manejar el mensaje del usuario"
+    description: "el bot no puede manejar el mensaje del usuario, pregunta algo fuera del alcance o fuera del tema"
     name: no puedo ayudar
+    nlu_trigger:
+      - intent: nlu_fallback
+      - intent: out_of_scope
     steps:
       - action: action_free_response
 
   pattern_chitchat:
     description: "el usuario hace una pregunta casual, saludo informal, pregunta general o conversación fuera del tema de los flows"
     name: chitchat
-    steps:
-      - action: action_free_response
-
-  pattern_out_of_scope:
-    description: "el usuario pregunta algo fuera del alcance del bot"
-    name: fuera de alcance
+    nlu_trigger:
+      - intent: chitchat
     steps:
       - action: action_free_response
 

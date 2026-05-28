@@ -1,0 +1,105 @@
+version: "3.1"
+
+nlu:
+- intent: greet
+  examples: |
+    - hola
+    - holaa
+    - buenas
+    - buenos dias
+    - buenas tardes
+    - buenas noches
+    - que tal
+    - buen dia
+
+- intent: buy_book
+  examples: |
+    - quiero comprarlo
+    - quiero comprar el libro
+    - quiero comprar
+    - lo quiero
+    - me lo llevo
+    - lo compro
+    - deseo comprarlo
+    - quiero pagarlo
+    - quiero pagar el libro
+    - comprar
+    - comprarlo
+
+- intent: browse_catalog
+  examples: |
+    - quiero ver el catalogo
+    - muestrame el catalogo
+    - ver catalogo
+    - que libros tienes
+    - que libros hay
+    - quiero ver los libros
+    - mostrar catalogo
+    - ensename los libros disponibles
+
+- intent: ask_book_details
+  examples: |
+    - dame el detalle del libro
+    - quiero ver el detalle
+    - muestrame la descripcion completa
+    - de que trata el libro
+    - cuantas paginas tiene
+    - cual es el precio
+    - quiero ver el preview
+    - informacion del libro
+
+- intent: chitchat
+  examples: |
+    - como estas
+    - que tal tu dia
+    - cuentame un chiste
+    - quien eres
+    - gracias
+    - muchas gracias
+    - ok genial
+    - perfecto
+    - jaja
+    - buenas, como vas
+
+- intent: out_of_scope
+  examples: |
+    - que hora es
+    - como esta el clima hoy
+    - quien gano el partido
+    - ayudame con mi tarea de matematicas
+    - quiero comprar un celular
+    - cual es la capital de francia
+    - recomiendame una pelicula
+    - como instalar ubuntu
+    - cuanto esta el bitcoin
+    - traduce esto al ingles
+
+- intent: affirm
+  examples: |
+    - si
+    - sí
+    - yes
+    - ok
+    - dale
+    - correcto
+    - confirmo
+    - acepto
+    - proceder
+    - vamos
+
+- intent: deny
+  examples: |
+    - no
+    - no quiero
+    - mejor no
+    - cancelar
+    - no gracias
+    - no deseo continuar
+
+- intent: stop
+  examples: |
+    - stop
+    - detente
+    - detener
+    - para
+    - abortar

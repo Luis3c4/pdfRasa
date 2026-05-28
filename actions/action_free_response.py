@@ -1,5 +1,7 @@
 import json
+import logging
 import os
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Text
 
@@ -7,6 +9,8 @@ from openai import OpenAI
 from rasa_sdk import Action, Tracker
 from rasa_sdk.events import SlotSet
 from rasa_sdk.executor import CollectingDispatcher
+
+logger = logging.getLogger(__name__)
 
 _CATALOG_PATH = Path(__file__).parent.parent / "db" / "catalog.json"
 
@@ -180,6 +184,13 @@ def _looks_like_english_fallback(text: str) -> bool:
     ]
     return any(pattern in lower for pattern in blocked_patterns)
 
+
+def _strip_thinking_tags(text: str) -> str:
+    """Remove <think>...</think> blocks produced by Qwen3 reasoning models."""
+    cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+    return cleaned.strip()
+
+
 class ActionFreeResponse(Action):
     def name(self) -> str:
         return "action_free_response"
@@ -192,40 +203,25 @@ class ActionFreeResponse(Action):
     ) -> List[Dict[Text, Any]]:
         user_text = tracker.latest_message.get("text") or ""
 
-        # Keep purchase confirmation deterministic: answer payment FAQ briefly,
-        # then return to the exact flow question.
+        # Keep purchase confirmation deterministic: answer payment FAQ briefly.
+        # Do NOT re-send utter_ask_purchase_confirmation here — the CALM flow's
+        # rejection mechanism already does it and re-sending would cause a duplicate.
         if _was_asking_purchase_confirmation(tracker) and _is_payment_method_question(user_text):
             dispatcher.utter_message(
                 text="Sí, también aceptamos pago mediante Plin. Puedes pagar usando Yape o Plin."
             )
-            dispatcher.utter_message(response="utter_ask_purchase_confirmation")
             return []
 
         # Safety net: if yes/no confirmation is misrouted to free response,
-        # continue with the deterministic purchase branch instead of falling
-        # back to cannot-handle.
+        # set the slot so the CALM purchase flow can advance.
+        # Do NOT send the payment instructions or cancellation message here —
+        # the CALM flow sends them via utter_payment_instructions /
+        # utter_purchase_cancelled, and sending them here too causes duplicates.
         if _was_asking_purchase_confirmation(tracker):
-            book = _get_default_book_data() or {}
-            book_title = tracker.get_slot("book_title") or book.get("book_title") or "200 recetas KETO"
-            book_price = tracker.get_slot("book_price") or book.get("book_price") or "S/ 7"
-
             if _is_affirmative(user_text):
-                dispatcher.utter_message(
-                    text=(
-                        "💳 *Instrucciones de pago*\n\n"
-                        "Realiza tu pago por *Yape o Plin* al número:\n"
-                        "📱 *923252274*\n\n"
-                        f"Monto: *{book_price}*\n"
-                        f"📚 Libro: *{book_title}*\n\n"
-                        "Una vez realizado el pago, envíame la *captura de pantalla* de la transacción por aquí."
-                    )
-                )
                 return [SlotSet("purchase_confirmation", True)]
 
             if _is_negative(user_text):
-                dispatcher.utter_message(
-                    text="✋ Entendido, cancelé la compra. Si cambias de idea, ¡aquí estaré!"
-                )
                 return [SlotSet("purchase_confirmation", False)]
 
         # Safety net: if the command generator misroutes a purchase intent to
@@ -251,48 +247,55 @@ class ActionFreeResponse(Action):
             )
             return []
 
-        client = OpenAI(
-            api_key=os.environ.get("NVIDIA_API_KEY"),
-            base_url="https://integrate.api.nvidia.com/v1",
-        )
-
-        messages: List[Dict[str, str]] = [{"role": "system", "content": _build_system_prompt()}]
-
-        # Add recent conversation history for context (skip current user message)
-        history_events = [
-            e for e in tracker.events if e.get("event") in ("user", "bot")
-        ]
-        # Limit to last 10 turns (20 events), excluding the latest user message
-        for event in history_events[-21:-1]:
-            if event["event"] == "user":
-                text = event.get("text") or ""
-                if text:
-                    messages.append({"role": "user", "content": text})
-            elif event["event"] == "bot":
-                text = event.get("text") or ""
-                if text:
-                    messages.append({"role": "assistant", "content": text})
-
-        # Add the current user message
-        messages.append({"role": "user", "content": user_text})
-
         try:
+            client = OpenAI(
+                api_key=os.environ.get("NVIDIA_API_KEY"),
+                base_url="https://integrate.api.nvidia.com/v1",
+                timeout=20.0,  # hard cap so Rasa never waits indefinitely
+            )
+
+            messages: List[Dict[str, str]] = [{"role": "system", "content": _build_system_prompt()}]
+
+            # Add recent conversation history for context (skip current user message)
+            history_events = [
+                e for e in tracker.events if e.get("event") in ("user", "bot")
+            ]
+            # Limit to last 10 turns (20 events), excluding the latest user message
+            for event in history_events[-21:-1]:
+                if event["event"] == "user":
+                    text = event.get("text") or ""
+                    if text:
+                        messages.append({"role": "user", "content": text})
+                elif event["event"] == "bot":
+                    text = event.get("text") or ""
+                    if text:
+                        messages.append({"role": "assistant", "content": text})
+
+            # Add the current user message
+            messages.append({"role": "user", "content": user_text})
+
             response = client.chat.completions.create(
-                model="qwen/qwen3-coder-480b-a35b-instruct",
+                model="meta/llama-3.1-8b-instruct",
                 messages=messages,
                 max_tokens=256,
-                temperature=0.2,
-                top_p=0.9,
+                temperature=0.5,
             )
-            answer = response.choices[0].message.content.strip()
-            # Defensive guard: if provider returns generic English fallback, force a Spanish-safe response.
-            if _looks_like_english_fallback(answer):
+            raw = response.choices[0].message.content or ""
+            # Strip any residual <think>...</think> blocks as a safety net.
+            answer = _strip_thinking_tags(raw)
+            if not answer:
+                logger.warning(
+                    "action_free_response: LLM returned empty answer. Raw: %r", raw
+                )
+                answer = "Lo siento, no cuento con esa información en este momento."
+            elif _looks_like_english_fallback(answer):
                 if _is_payment_method_question(user_text):
                     answer = "Sí, aceptamos pagos por Yape o Plin al 923252274."
                 else:
                     answer = "Lo siento, no cuento con esa información en este momento. ¿Te ayudo con alguno de nuestros eBooks?"
             dispatcher.utter_message(text=answer)
         except Exception:
+            logger.exception("action_free_response: LLM call failed")
             dispatcher.utter_message(response="utter_cannot_handle")
 
         return []
