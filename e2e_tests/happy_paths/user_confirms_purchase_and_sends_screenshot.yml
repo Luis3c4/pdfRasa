@@ -1,0 +1,20 @@
+metadata:
+  - chatwoot_payment_image:
+      attachments:
+        - data_url: "https://example.com/payments/yape-ok.jpg"
+
+test_cases:
+  - test_case: user confirms purchase and sends screenshot successfully
+    steps:
+      - user: quiero comprarlo
+      - utter: utter_book_purchase_preview
+      - utter: utter_ask_purchase_confirmation
+      - user: si
+      - slot_was_set:
+          - purchase_confirmation: true
+      - utter: utter_payment_instructions
+      - user: te envio la captura de pago
+        metadata: chatwoot_payment_image
+      - slot_was_set:
+          - payment_screenshot_url: "https://example.com/payments/yape-ok.jpg"
+          - payment_validation_status

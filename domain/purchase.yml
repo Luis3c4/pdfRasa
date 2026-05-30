@@ -5,6 +5,7 @@ actions:
   - action_release_download
   - action_reset_purchase_slots
   - action_clear_payment_state
+  - validate_purchase_confirmation
   - action_normalize_purchase_confirmation
   - action_escalate_to_human
   - validate_payment_screenshot_url
@@ -13,9 +14,6 @@ slots:
   payment_screenshot_url:
     type: text
     mappings:
-      - type: from_text
-        conditions:
-          - active_flow: purchase
       - type: controlled
   payment_validation_status:
     type: text
