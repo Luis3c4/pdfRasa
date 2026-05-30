@@ -9,7 +9,7 @@ test_cases:
       - user: quiero comprarlo
       - utter: utter_book_purchase_preview
       - utter: utter_ask_purchase_confirmation
-      - user: si
+      - user: sip
       - slot_was_set:
           - purchase_confirmation: true
       - utter: utter_payment_instructions

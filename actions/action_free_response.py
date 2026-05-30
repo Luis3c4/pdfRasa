@@ -10,6 +10,8 @@ from rasa_sdk import Action, Tracker
 from rasa_sdk.events import SlotSet
 from rasa_sdk.executor import CollectingDispatcher
 
+from actions.action_normalize_purchase_confirmation import _parse_purchase_confirmation
+
 logger = logging.getLogger(__name__)
 
 _CATALOG_PATH = Path(__file__).parent.parent / "db" / "catalog.json"
@@ -57,39 +59,11 @@ def _is_purchase_intent(text: str) -> bool:
 
 
 def _is_affirmative(text: str) -> bool:
-    lower = _normalize(text)
-    if not lower:
-        return False
-
-    affirmative_tokens = (
-        "si",
-        "sí",
-        "yes",
-        "ok",
-        "dale",
-        "correcto",
-        "confirmo",
-        "acepto",
-        "proceder",
-        "vamos",
-    )
-    return lower in affirmative_tokens
+    return _parse_purchase_confirmation(text) is True
 
 
 def _is_negative(text: str) -> bool:
-    lower = _normalize(text)
-    if not lower:
-        return False
-
-    negative_tokens = (
-        "no",
-        "cancelar",
-        "no quiero",
-        "mejor no",
-        "detener",
-        "stop",
-    )
-    return lower in negative_tokens
+    return _parse_purchase_confirmation(text) is False
 
 
 def _get_default_book_data() -> Dict[str, str] | None:
@@ -191,6 +165,20 @@ def _strip_thinking_tags(text: str) -> str:
     return cleaned.strip()
 
 
+def _has_image_attachment(tracker: Tracker) -> bool:
+    """Return True when latest message includes an image attachment/metadata."""
+    metadata = tracker.latest_message.get("metadata", {}) or {}
+
+    attachments = metadata.get("attachments") or []
+    if attachments:
+        return True
+
+    if metadata.get("image") or metadata.get("MediaUrl0") or metadata.get("image_url"):
+        return True
+
+    return False
+
+
 class ActionFreeResponse(Action):
     def name(self) -> str:
         return "action_free_response"
@@ -201,6 +189,11 @@ class ActionFreeResponse(Action):
         tracker: Tracker,
         domain: Dict[str, Any],
     ) -> List[Dict[Text, Any]]:
+        # Never send free-response LLM messages for screenshot/image turns.
+        # Those turns must be handled by the purchase screenshot flow.
+        if _has_image_attachment(tracker):
+            return []
+
         user_text = tracker.latest_message.get("text") or ""
 
         # Keep purchase confirmation deterministic: answer payment FAQ briefly.

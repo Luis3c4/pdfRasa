@@ -58,6 +58,15 @@ def _resolve_credential(value: Any, default: str) -> str:
     return resolved or default
 
 
+def _extract_image_url_from_attachments(attachments: List[Dict]) -> str:
+    """Return first attachment URL from Chatwoot payload, if any."""
+    for attachment in attachments or []:
+        url = attachment.get("data_url") or attachment.get("url") or ""
+        if url:
+            return str(url)
+    return ""
+
+
 class ChatwootOutput(OutputChannel):
     """Sends Rasa bot responses back to Chatwoot via its REST API."""
 
@@ -194,19 +203,16 @@ class ChatwootInput(InputChannel):
             # Use conversation_id for session continuity across turns
             user_id = f"chatwoot_{conversation_id}"
 
-            # When user sends only an image, extract the image URL and use it as the
-            # message text so the LLM can fill payment_screenshot_url directly without
-            # accidentally re-triggering the purchase flow from its description.
-            if content:
+            # If a user sends a screenshot with or without caption, prioritize the
+            # image URL as message text so CALM collect can fill payment_screenshot_url
+            # deterministically and avoid routing this turn to free-response LLM.
+            image_url = _extract_image_url_from_attachments(attachments)
+            if image_url:
+                message_text = image_url
+            elif content:
                 message_text = content
             else:
-                _image_url = ""
-                for _att in (attachments or []):
-                    _url = _att.get("data_url") or _att.get("url") or ""
-                    if _url:
-                        _image_url = _url
-                        break
-                message_text = _image_url or "imagen adjunta"
+                message_text = "imagen adjunta"
 
             output = ChatwootOutput(
                 url=self.url,
