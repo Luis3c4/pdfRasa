@@ -16,6 +16,7 @@ def _book_to_events(book) -> list[SlotSet]:
         SlotSet("book_description", book.description),
         SlotSet("book_pages", str(book.pages)),
         SlotSet("book_preview", book.preview),
+        SlotSet("book_image_url", book.image_url),
     ]
 
 

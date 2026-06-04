@@ -16,6 +16,8 @@ class ActionResetPurchaseSlots(Action):
             SlotSet("purchase_confirmation", None),
             SlotSet("payment_screenshot_url", None),
             SlotSet("payment_validation_status", None),
+            SlotSet("payment_flow_completed", None),
             SlotSet("last_validated_payment_message_id", None),
             SlotSet("selected_book_id", None),
+            SlotSet("book_image_url", None),
         ]

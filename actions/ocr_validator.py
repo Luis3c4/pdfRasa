@@ -207,20 +207,16 @@ def validate_payment(
     }
 
     # Approval requires both the correct amount AND a success keyword.
-    # If the amount is wrong → rejected immediately.
-    # If the amount is correct but success keyword is missing → needs_review
-    # (partial screenshot or OCR missed the keyword).
-    # If the amount could not be read → needs_review (can't confirm).
+    # If the amount is wrong or unreadable → rejected so the user retries with
+    # a complete screenshot. Manual review is reserved for ambiguous cases where
+    # the amount matches but success evidence is missing.
     if checks["monto_correcto"] and checks["pago_exitoso"]:
         status = "approved"
     elif checks["monto_correcto"]:
         # Amount matches but couldn't confirm "exitoso" — escalate to human.
         status = "needs_review"
-    elif data["monto"] is None and any(checks.values()):
-        # OCR couldn't parse the amount at all but other signals present.
-        status = "needs_review"
     else:
-        # Amount was readable and it's wrong — reject.
+        # Amount mismatch/unreadable — reject and ask for a new screenshot.
         status = "rejected"
 
     logger.info(

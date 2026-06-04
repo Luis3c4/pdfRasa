@@ -38,6 +38,21 @@ def _to_direct_download_link(url: str) -> str:
     return f"https://drive.google.com/uc?export=download&id={file_id}"
 
 
+def _build_pdf_filename(book_title: str) -> str:
+    raw = (book_title or "").strip().lower()
+    if not raw:
+        return "ebook.pdf"
+
+    safe = "".join(ch for ch in raw if ch.isalnum() or ch in (" ", "-", "_"))
+    safe = " ".join(safe.split())
+    if not safe:
+        safe = "ebook"
+
+    if not safe.endswith(".pdf"):
+        safe = f"{safe}.pdf"
+    return safe
+
+
 class ActionReleaseDownload(Action):
     def name(self) -> str:
         return "action_release_download"
@@ -45,6 +60,9 @@ class ActionReleaseDownload(Action):
     def run(
         self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[str, Any]
     ) -> List[Dict[Text, Any]]:
+        if tracker.get_slot("payment_flow_completed"):
+            return [SlotSet("return_value", "success")]
+
         book_id = tracker.get_slot("selected_book_id")
         order_id = tracker.get_slot("order_id")
 
@@ -57,19 +75,28 @@ class ActionReleaseDownload(Action):
             return [SlotSet("return_value", "error")]
 
         download_link = _to_direct_download_link(book.download_link)
+        pdf_filename = _build_pdf_filename(book.title)
 
         dispatcher.utter_message(
             text=(
                 f"🎉 ¡Pago confirmado! Tu orden está lista.\n\n"
-                f"⬇️ {download_link}\n\n"
                 f"📦 Orden #{order_id}\n\n"
-                f"¡Disfruta tu lectura! 😊"
+                f"Te envío tu PDF como documento en este chat."
             )
         )
+        dispatcher.utter_message(
+            attachment={
+                "type": "file",
+                "payload": {
+                    "src": download_link,
+                    "filename": pdf_filename,
+                },
+            }
+        )
+        dispatcher.utter_message(text="¡Disfruta tu lectura! 😊")
 
         return [
             SlotSet("return_value", "success"),
             SlotSet("purchase_confirmation", None),
-            SlotSet("payment_screenshot_url", None),
-            SlotSet("selected_book_id", None),
+            SlotSet("payment_flow_completed", True),
         ]

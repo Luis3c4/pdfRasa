@@ -17,6 +17,7 @@ nlu:
     - quiero comprarlo
     - quiero comprar el libro
     - quiero comprar
+    - quiero conprar
     - lo quiero
     - me lo llevo
     - lo compro
@@ -25,6 +26,9 @@ nlu:
     - quiero pagar el libro
     - comprar
     - comprarlo
+    - conprar
+    - conprarlo
+    - conprar el libro
 
 - intent: browse_catalog
   examples: |

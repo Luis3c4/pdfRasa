@@ -19,6 +19,10 @@ slots:
     type: text
     mappings:
       - type: controlled
+  payment_flow_completed:
+    type: bool
+    mappings:
+      - type: controlled
   last_validated_payment_message_id:
     type: text
     mappings:
@@ -46,6 +50,7 @@ responses:
     - text: "🔍 *Preview:* {book_preview}"
   utter_ask_purchase_confirmation:
     - text: "Quieres comprar *{book_title}* por *{book_price}* yape o plin ¿Es correcto? (si - no)"
+      image: "{book_image_url}"
   utter_payment_instructions:
     - text: "💳 *Instrucciones de pago*\n\nRealiza tu pago por *Yape o Plin* al número:\n📱 *923252274*\n\nMonto: *{book_price}*\n📚 Libro: *{book_title}*\n\nUna vez realizado el pago, envíame la *captura de pantalla* de la transacción por aquí."
   utter_ask_payment_screenshot_url:
@@ -56,7 +61,5 @@ responses:
     - text: "✋ Entendido, cancelé la compra. Si cambias de idea, ¡aquí estaré!"
   utter_purchase_error:
     - text: "Algo salió mal al procesar tu orden. Por favor intenta nuevamente o escribe *hola* para comenzar."
-  utter_payment_ocr_rejected:
-    - text: "Por favor, envía nuevamente la captura completa de confirmación de Yape o Plin (monto, número destino y estado 'Exitoso'). 📸"
   utter_payment_needs_review:
     - text: "✅ Recibí tu captura. Necesita una revisión manual por parte de nuestro equipo. Un agente la verificará en breve y te enviará el link de descarga por este mismo chat. ¡Gracias por tu paciencia! 🙏"

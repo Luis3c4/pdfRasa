@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import re
+import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Text
 
@@ -10,7 +11,12 @@ from rasa_sdk import Action, Tracker
 from rasa_sdk.events import SlotSet
 from rasa_sdk.executor import CollectingDispatcher
 
+from actions.action_escalate_to_human import ActionEscalateToHuman
 from actions.action_normalize_purchase_confirmation import _parse_purchase_confirmation
+from actions.action_release_download import _build_pdf_filename, _to_direct_download_link
+from actions.catalog import create_order, get_book_by_id
+from actions.payment_message_dedup import build_scoped_message_id, mark_processed, should_process
+from actions.ocr_validator import validate_payment
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +41,38 @@ def _is_payment_method_question(text: str) -> bool:
         "plin",
         "aceptan",
         "aceptas",
+        "cuenta",
+        "deposito",
+        "depósito",
+        "depositar",
+        "transferencia",
+        "numero",
+        "número",
+        "telefono",
+        "teléfono",
+        "celular",
+        "yapeo",
+        "yapear",
+        "plineo",
+        "plinear",
     )
-    return any(token in lower for token in payment_tokens)
+
+    payment_phrases = (
+        "a que numero",
+        "a qué número",
+        "a que cuenta",
+        "a qué cuenta",
+        "donde deposito",
+        "dónde deposito",
+        "donde pago",
+        "dónde pago",
+        "como pago",
+        "cómo pago",
+    )
+
+    return any(token in lower for token in payment_tokens) or any(
+        phrase in lower for phrase in payment_phrases
+    )
 
 
 def _is_purchase_intent(text: str) -> bool:
@@ -44,6 +80,9 @@ def _is_purchase_intent(text: str) -> bool:
     lower = _normalize(text)
     if not lower:
         return False
+
+    # Normalize a frequent typo so "conprar" routes like "comprar".
+    lower = lower.replace("conpr", "compr")
 
     purchase_tokens = (
         "comprarlo",
@@ -55,7 +94,11 @@ def _is_purchase_intent(text: str) -> bool:
         "lo compro",
         "adquirirlo",
     )
-    return any(token in lower for token in purchase_tokens)
+    if any(token in lower for token in purchase_tokens):
+        return True
+
+    # Catch very short purchase requests and minor spelling variants.
+    return bool(re.search(r"\bcom?prar(?:lo)?\b", lower))
 
 
 def _is_affirmative(text: str) -> bool:
@@ -80,6 +123,7 @@ def _get_default_book_data() -> Dict[str, str] | None:
             "book_title": str(first.get("title") or "200 recetas KETO"),
             "book_price": price or "S/ 7",
             "book_preview": str(first.get("preview") or ""),
+            "book_image_url": str(first.get("image_url") or ""),
         }
     except Exception:
         return None
@@ -179,6 +223,84 @@ def _has_image_attachment(tracker: Tracker) -> bool:
     return False
 
 
+def _extract_image_url(metadata: Dict[str, Any]) -> str:
+    attachments = metadata.get("attachments") or []
+    if attachments:
+        first = attachments[0] or {}
+        return first.get("data_url") or first.get("url") or ""
+
+    image_data = metadata.get("image") or {}
+    if image_data:
+        return image_data.get("link") or image_data.get("id") or ""
+
+    return metadata.get("MediaUrl0") or metadata.get("image_url") or ""
+
+
+def _current_message_id(tracker: Tracker) -> str:
+    metadata = tracker.latest_message.get("metadata", {}) or {}
+    raw_message_id = (
+        metadata.get("chatwoot_message_id")
+        or metadata.get("message_id")
+        or tracker.latest_message.get("message_id")
+        or ""
+    )
+    return build_scoped_message_id(tracker.sender_id, str(raw_message_id))
+
+
+def _recent_payment_context(tracker: Tracker, lookback_bot_messages: int = 4) -> bool:
+    tokens = ("yape", "plin", "923252274", "captura", "instrucciones de pago")
+    seen = 0
+    for event in reversed(tracker.events):
+        if event.get("event") != "bot":
+            continue
+        text = _normalize(event.get("text") or "")
+        if text and any(token in text for token in tokens):
+            return True
+        seen += 1
+        if seen >= lookback_bot_messages:
+            break
+    return False
+
+
+def _has_active_purchase_flow(tracker: Tracker) -> bool:
+    return tracker.active_loop_name in {"purchase", "book_details"}
+
+
+def _resolve_expected_amount(tracker: Tracker) -> int:
+    book_price = tracker.get_slot("book_price")
+    if book_price:
+        match = re.search(r"(\d+)", str(book_price))
+        if match:
+            return int(match.group(1))
+
+    book_id = tracker.get_slot("selected_book_id")
+    if book_id:
+        book = get_book_by_id(tracker.sender_id, str(book_id))
+        if book:
+            return int(book.price)
+
+    fallback = _get_default_book_data()
+    if fallback:
+        match = re.search(r"(\d+)", fallback.get("book_price") or "")
+        if match:
+            return int(match.group(1))
+    return 0
+
+
+def _resolve_book_for_fallback(tracker: Tracker):
+    book_id = tracker.get_slot("selected_book_id")
+    if book_id:
+        book = get_book_by_id(tracker.sender_id, str(book_id))
+        if book:
+            return book
+
+    fallback = _get_default_book_data()
+    if fallback and fallback.get("book_id"):
+        return get_book_by_id(tracker.sender_id, str(fallback["book_id"]))
+
+    return None
+
+
 class ActionFreeResponse(Action):
     def name(self) -> str:
         return "action_free_response"
@@ -190,8 +312,129 @@ class ActionFreeResponse(Action):
         domain: Dict[str, Any],
     ) -> List[Dict[Text, Any]]:
         # Never send free-response LLM messages for screenshot/image turns.
-        # Those turns must be handled by the purchase screenshot flow.
+        # If the flow was not activated but payment context exists, run OCR
+        # as a robust fallback to avoid dropping payment screenshots.
         if _has_image_attachment(tracker):
+            if _has_active_purchase_flow(tracker):
+                logger.info(
+                    "Screenshot received while purchase flow '%s' is active; skipping fallback delivery",
+                    tracker.active_loop_name,
+                )
+                return []
+
+            if tracker.get_slot("payment_flow_completed"):
+                return []
+
+            current_message_id = _current_message_id(tracker)
+            if current_message_id and not should_process(current_message_id):
+                logger.info("Dedup: message_id=%s already processed elsewhere, skipping fallback", current_message_id)
+                return []
+
+            metadata = tracker.latest_message.get("metadata", {}) or {}
+            image_url = _extract_image_url(metadata)
+
+            if not image_url:
+                return []
+
+            if not (_recent_payment_context(tracker) or tracker.get_slot("selected_book_id")):
+                return []
+
+            expected_amount = _resolve_expected_amount(tracker)
+            mark_processed(current_message_id)
+            result = validate_payment(
+                image_url=image_url,
+                expected_amount=expected_amount,
+                yape_number="923252274",
+            )
+
+            status = result.get("status")
+            data = result.get("data") or {}
+
+            if status == "approved":
+                book = _resolve_book_for_fallback(tracker)
+                if book is None:
+                    dispatcher.utter_message(
+                        text="Pago validado, pero no pude identificar el libro para entregarte el PDF. Un asesor te ayudará en breve."
+                    )
+                    ActionEscalateToHuman().run(dispatcher, tracker, domain)
+                    return [
+                        SlotSet("payment_screenshot_url", image_url),
+                        SlotSet("payment_validation_status", "needs_review"),
+                    ]
+
+                order = create_order(
+                    session_id=tracker.sender_id,
+                    book_id=str(book.id),
+                    book_title=str(book.title),
+                    buyer_name=tracker.sender_id,
+                    screenshot_url=image_url,
+                    status="approved",
+                )
+                order_id = getattr(order, "order_id", None) or str(uuid.uuid4())[:8].upper()
+
+                download_link = _to_direct_download_link(book.download_link)
+                pdf_filename = _build_pdf_filename(book.title)
+
+                dispatcher.utter_message(
+                    text=(
+                        f"🎉 ¡Pago confirmado! Tu orden está lista.\n\n"
+                        f"📦 Orden #{order_id}\n\n"
+                        f"Te envío tu PDF como documento en este chat."
+                    )
+                )
+                dispatcher.utter_message(
+                    attachment={
+                        "type": "file",
+                        "payload": {
+                            "src": download_link,
+                            "filename": pdf_filename,
+                        },
+                    }
+                )
+                dispatcher.utter_message(text="¡Disfruta tu lectura! 😊")
+                return [
+                    SlotSet("order_id", order_id),
+                    SlotSet("return_value", "success"),
+                    SlotSet("payment_screenshot_url", image_url),
+                    SlotSet("payment_validation_status", "approved"),
+                    SlotSet("payment_flow_completed", True),
+                ]
+
+            if status == "needs_review":
+                book = _resolve_book_for_fallback(tracker)
+                if book is not None:
+                    create_order(
+                        session_id=tracker.sender_id,
+                        book_id=str(book.id),
+                        book_title=str(book.title),
+                        buyer_name=tracker.sender_id,
+                        screenshot_url=image_url,
+                        status="needs_review",
+                    )
+                ActionEscalateToHuman().run(dispatcher, tracker, domain)
+                return [
+                    SlotSet("payment_screenshot_url", image_url),
+                    SlotSet("payment_validation_status", "needs_review"),
+                ]
+
+            # rejected
+            detected_monto = data.get("monto")
+            if detected_monto is not None and expected_amount > 0:
+                dispatcher.utter_message(
+                    text=(
+                        f"⚠️ El monto detectado en tu captura (S/ {float(detected_monto):.2f}) "
+                        f"no coincide con el precio del libro (S/ {float(expected_amount):.2f}). "
+                        f"Asegúrate de pagar el monto exacto e intenta nuevamente."
+                    )
+                )
+            else:
+                dispatcher.utter_message(
+                    text=(
+                        "⚠️ No pude leer el monto en tu captura. "
+                        "Asegúrate de enviar la pantalla completa de Yape o Plin "
+                        "donde se vea claramente el monto, el número destino y el estado 'Exitoso'."
+                    )
+                )
             return []
 
         user_text = tracker.latest_message.get("text") or ""
@@ -203,7 +446,9 @@ class ActionFreeResponse(Action):
             dispatcher.utter_message(
                 text="Sí, también aceptamos pago mediante Plin. Puedes pagar usando Yape o Plin."
             )
-            return []
+            # Interpret this FAQ as an implicit "sí" to avoid getting stuck in the
+            # confirmation step when users naturally ask for payment details first.
+            return [SlotSet("purchase_confirmation", True)]
 
         # Safety net: if yes/no confirmation is misrouted to free response,
         # set the slot so the CALM purchase flow can advance.
@@ -225,6 +470,8 @@ class ActionFreeResponse(Action):
             if book:
                 if book["book_preview"]:
                     dispatcher.utter_message(text=f"🔍 *Preview:* {book['book_preview']}")
+                if book["book_image_url"]:
+                    dispatcher.utter_message(image=book["book_image_url"])
                 dispatcher.utter_message(
                     text=f"Quieres comprar *{book['book_title']}* por *{book['book_price']}* yape o plin ¿Es correcto? (si - no)"
                 )
@@ -233,6 +480,7 @@ class ActionFreeResponse(Action):
                     SlotSet("book_title", book["book_title"]),
                     SlotSet("book_price", book["book_price"]),
                     SlotSet("book_preview", book["book_preview"]),
+                    SlotSet("book_image_url", book["book_image_url"]),
                 ]
 
             dispatcher.utter_message(

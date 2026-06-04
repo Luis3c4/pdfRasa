@@ -7,10 +7,54 @@ from rasa_sdk.executor import CollectingDispatcher
 
 from actions.ocr_validator import validate_payment_async
 from actions.catalog import get_book_by_id
+from actions.payment_message_dedup import build_scoped_message_id, mark_processed, should_process
 
 logger = logging.getLogger(__name__)
 
 YAPE_NUMBER = "923252274"
+
+
+def _current_message_id(tracker: Tracker) -> str:
+    metadata = tracker.latest_message.get("metadata", {}) or {}
+    raw_message_id = (
+        metadata.get("chatwoot_message_id")
+        or metadata.get("message_id")
+        or tracker.latest_message.get("message_id")
+        or ""
+    )
+    return build_scoped_message_id(tracker.sender_id, str(raw_message_id))
+
+
+def _reuse_existing_result(
+    current_message_id: str,
+    last_validated_message_id: str,
+    current_status: Any,
+    current_screenshot_url: Any,
+) -> List[Dict[Text, Any]] | None:
+    if current_message_id and current_message_id == last_validated_message_id:
+        if current_status in {"approved", "needs_review", "rejected"} and current_screenshot_url:
+            logger.info(
+                "Dedup: message_id=%s already validated with status=%s — reusing previous result",
+                current_message_id,
+                current_status,
+            )
+            return [
+                SlotSet("payment_screenshot_url", current_screenshot_url),
+                SlotSet("payment_validation_status", current_status),
+                SlotSet("last_validated_payment_message_id", current_message_id),
+            ]
+
+        logger.info(
+            "Dedup: message_id=%s already seen without reusable result — returning null",
+            current_message_id,
+        )
+        return [
+            SlotSet("payment_screenshot_url", None),
+            SlotSet("payment_validation_status", None),
+            SlotSet("last_validated_payment_message_id", current_message_id or None),
+        ]
+
+    return None
 
 
 class ValidatePaymentScreenshotUrl(Action):
@@ -30,13 +74,46 @@ class ValidatePaymentScreenshotUrl(Action):
         logger.info("=== validate_payment_screenshot_url START ===")
         logger.info("tracker.latest_message: %s", tracker.latest_message)
 
-        current_message_id = str(tracker.latest_message.get("message_id") or "")
+        current_message_id = _current_message_id(tracker)
         last_validated_message_id = str(tracker.get_slot("last_validated_payment_message_id") or "")
         current_status = tracker.get_slot("payment_validation_status")
         current_screenshot_url = tracker.get_slot("payment_screenshot_url")
-        
+        payment_flow_completed = bool(tracker.get_slot("payment_flow_completed"))
+        existing_order_id = str(tracker.get_slot("order_id") or "").strip()
+
+        # Guard against duplicate/late webhooks after checkout has already completed.
+        # Never return a null screenshot in this state, otherwise the flow may loop
+        # back to wait_for_screenshot and ask the user for another capture.
+        if payment_flow_completed and existing_order_id:
+            logger.info(
+                "Payment flow already completed (order_id=%s). Reusing current validation state.",
+                existing_order_id,
+            )
+            return [
+                SlotSet("payment_screenshot_url", current_screenshot_url),
+                SlotSet("payment_validation_status", current_status or "approved"),
+                SlotSet("last_validated_payment_message_id", current_message_id or last_validated_message_id or None),
+            ]
+
         metadata = tracker.latest_message.get("metadata", {})
         logger.info("metadata extracted: %s", metadata)
+
+        if current_message_id and not should_process(current_message_id):
+            reused_result = _reuse_existing_result(
+                current_message_id=current_message_id,
+                last_validated_message_id=last_validated_message_id,
+                current_status=current_status,
+                current_screenshot_url=current_screenshot_url,
+            )
+            if reused_result is not None:
+                return reused_result
+
+            logger.info("Dedup: message_id=%s already processed elsewhere, returning null", current_message_id)
+            return [
+                SlotSet("payment_screenshot_url", None),
+                SlotSet("payment_validation_status", None),
+                SlotSet("last_validated_payment_message_id", current_message_id or None),
+            ]
         
         image_url = self._extract_image_url(metadata)
         logger.info("image_url extracted: %s", image_url)
@@ -52,35 +129,19 @@ class ValidatePaymentScreenshotUrl(Action):
         # Dedup guard: same message_id has already been validated in this conversation.
         # If we already have a validation result for this message, reuse it so the
         # flow can continue without re-running OCR or looping back to ask screenshot.
-        if (
-            current_message_id
-            and last_validated_message_id
-            and current_message_id == last_validated_message_id
-        ):
-            if current_status in {"approved", "needs_review", "rejected"} and current_screenshot_url:
-                logger.info(
-                    "Dedup: message_id=%s already validated with status=%s — reusing previous result",
-                    current_message_id,
-                    current_status,
-                )
-                return [
-                    SlotSet("payment_screenshot_url", current_screenshot_url),
-                    SlotSet("payment_validation_status", current_status),
-                    SlotSet("last_validated_payment_message_id", current_message_id),
-                ]
-
-            logger.info(
-                "Dedup: message_id=%s already seen without reusable result — returning null",
-                current_message_id,
-            )
-            return [
-                SlotSet("payment_screenshot_url", None),
-                SlotSet("payment_validation_status", None),
-            ]
+        reused_result = _reuse_existing_result(
+            current_message_id=current_message_id,
+            last_validated_message_id=last_validated_message_id,
+            current_status=current_status,
+            current_screenshot_url=current_screenshot_url,
+        )
+        if reused_result is not None:
+            return reused_result
 
         # Run OCR in a thread pool — non-blocking, concurrent users are served in parallel
         expected_amount = self._get_expected_amount(tracker)
         logger.info("expected_amount resolved to: %s", expected_amount)
+        mark_processed(current_message_id)
         
         try:
             logger.info("Starting OCR validation for URL: %s", image_url)

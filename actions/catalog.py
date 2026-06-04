@@ -23,6 +23,7 @@ class Book(BaseModel):
     price: int
     currency: str
     preview: str
+    image_url: str = ""
     download_link: str
 
 

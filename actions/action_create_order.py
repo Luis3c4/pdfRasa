@@ -15,12 +15,19 @@ class ActionCreateOrder(Action):
     def run(
         self, dispatcher: CollectingDispatcher, tracker: Tracker, domain: Dict[str, Any]
     ) -> List[Dict[Text, Any]]:
+        existing_order_id = str(tracker.get_slot("order_id") or "").strip()
         book_id = tracker.get_slot("selected_book_id")
         book_title = tracker.get_slot("book_title")
         screenshot_url = tracker.get_slot("payment_screenshot_url")
         validation_status = tracker.get_slot("payment_validation_status") or "needs_review"
         # Use WhatsApp sender ID (phone number) as buyer identifier
         buyer_name = tracker.sender_id
+
+        if existing_order_id:
+            return [
+                SlotSet("order_id", existing_order_id),
+                SlotSet("return_value", "success"),
+            ]
 
         if not all([book_id, book_title, screenshot_url]):
             return [SlotSet("return_value", "error")]
@@ -40,11 +47,6 @@ class ActionCreateOrder(Action):
         )
 
         order_id = getattr(order, "order_id", None) or str(uuid.uuid4())[:8].upper()
-
-        dispatcher.utter_message(
-            response="utter_order_created",
-            order_id=order_id,
-        )
 
         return [
             SlotSet("order_id", order_id),

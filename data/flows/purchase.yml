@@ -63,10 +63,7 @@ flows:
             then: create_order
           - if: "slots.payment_validation_status = 'needs_review'"
             then: create_order_pending
-          - else: ocr_rejected
-      - id: ocr_rejected
-        action: utter_payment_ocr_rejected
-        next: clear_for_retry
+          - else: clear_for_retry
       - id: clear_for_retry
         action: action_clear_payment_state
         next: wait_for_screenshot

@@ -30,6 +30,10 @@ slots:
     type: text
     mappings:
       - type: controlled
+  book_image_url:
+    type: text
+    mappings:
+      - type: controlled
 
 responses:
   utter_ask_selected_book_id:
