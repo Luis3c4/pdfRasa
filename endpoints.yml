@@ -69,7 +69,7 @@ model_groups:
   - id: openai-embeddings
     models:
       - provider: openai
-        model: BAAI/bge-m3
-        api_base: http://localhost:8001/v1
-        api_key: ${VLLM_API_KEY}
+        model: nvidia/nv-embed-v1
+        api_base: https://integrate.api.nvidia.com/v1
+        api_key: ${NVIDIA_API_KEY}
         encoding_format: float
